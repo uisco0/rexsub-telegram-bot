@@ -197,6 +197,12 @@ STRINGS = {
         'telegram_order_status_pending': "⏳ قيد الانتظار",
         'telegram_order_status_completed': "✅ مكتمل",
         'telegram_order_status_cancelled': "❌ ملغي",
+        'view_members_full': "📊 عرض كامل",
+        'view_members_fast': "🚀 عرض سريع",
+        'view_stats_only': "📈 إحصائيات فقط",
+        'choose_members_view': "👥 **اختر طريقة عرض الأعضاء:**",
+        'no_members': "ℹ️ لا يوجد أعضاء في البوت بعد.",
+        'members_stats': "📊 **إحصائيات شاملة للأعضاء**\n━━━━━━━━━━━━━━\n\n👥 **إجمالي الأعضاء:** {total}\n🚀 **الأعضاء النشطين:** {active} ({active_percent}%)\n💰 **إجمالي النقاط:** {total_points}\n🛍️ **إجمالي المشتريات:** {total_purchases}\n💸 **إجمالي النقاط المستخدمة:** {total_spent}\n📈 **متوسط النقاط:** {avg_points}\n🏪 **متوسط المشتريات:** {avg_purchases}\n━━━━━━━━━━━━━━\n📅 **آخر تحديث:** {update_time}",
     },
     'en': {
         'welcome_msg': "🦖 Welcome to RexSub 🔥\n━━━━━━━━━━━━━━\nWe're thrilled to have you! This bot is dedicated to providing a variety of premium accounts.\n\n💡 Start collecting points or browse the store now.",
@@ -278,6 +284,12 @@ STRINGS = {
         'telegram_order_status_pending': "⏳ Pending",
         'telegram_order_status_completed': "✅ Completed",
         'telegram_order_status_cancelled': "❌ Cancelled",
+        'view_members_full': "📊 Full View",
+        'view_members_fast': "🚀 Fast View",
+        'view_stats_only': "📈 Statistics Only",
+        'choose_members_view': "👥 **Choose Members View Method:**",
+        'no_members': "ℹ️ No members in the bot yet.",
+        'members_stats': "📊 **Comprehensive Member Statistics**\n━━━━━━━━━━━━━━\n\n👥 **Total Members:** {total}\n🚀 **Active Members:** {active} ({active_percent}%)\n💰 **Total Points:** {total_points}\n🛍️ **Total Purchases:** {total_purchases}\n💸 **Total Points Spent:** {total_spent}\n📈 **Average Points:** {avg_points}\n🏪 **Average Purchases:** {avg_purchases}\n━━━━━━━━━━━━━━\n📅 **Last Update:** {update_time}",
     }
 }
 
@@ -403,6 +415,154 @@ def delete_icloud_account(index):
         save_json(ICLOUD_FILE, accounts)
         return True
     return False
+
+# ============ وظائف عرض الأعضاء ============
+
+def show_members_list(admin_id):
+    """عرض قائمة الأعضاء"""
+    data = load_json(DB_FILE, {})
+    
+    if not data:
+        bot.send_message(admin_id, STRINGS['ar']['no_members'])
+        return
+    
+    total_members = len(data)
+    members_text = f"👥 **إحصائيات الأعضاء**\n━━━━━━━━━━━━━━\n\n"
+    members_text += f"📊 **إجمالي الأعضاء:** {total_members} عضو\n\n"
+    members_text += "📋 **قائمة الأعضاء:**\n━━━━━━━━━━━━━━\n\n"
+    
+    members_list = []
+    member_count = 0
+    
+    for user_id, user_data in data.items():
+        try:
+            # الحصول على معلومات المستخدم مع معالجة الأخطاء
+            try:
+                user_info = bot.get_chat(user_id)
+                username = f"@{user_info.username}" if user_info.username else "بدون يوزر"
+                first_name = user_info.first_name or "غير معروف"
+                last_name = f" {user_info.last_name}" if user_info.last_name else ""
+                full_name = f"{first_name}{last_name}"
+            except Exception as e:
+                # إذا فشل الحصول على المعلومات، استخدم البيانات المخزنة
+                username = "غير متاح"
+                full_name = "مستخدم مجهول"
+                print(f"خطأ في جلب معلومات المستخدم {user_id}: {e}")
+            
+            # الحصول على البيانات من قاعدة البيانات
+            points = user_data.get('points', 0)
+            purchases = user_data.get('purchases', 0)
+            spent_points = user_data.get('spent_points', 0)
+            
+            # إضافة معلومات العضو
+            member_info = f"👤 **{full_name}**\n"
+            member_info += f"📱 اليوزر: {username}\n"
+            member_info += f"💰 النقاط الحالية: {points}\n"
+            member_info += f"🛍️ المشتريات: {purchases}\n"
+            member_info += f"💸 النقاط المستخدمة: {spent_points}\n"
+            member_info += f"🆔 المعرف: `{user_id}`\n"
+            member_info += f"━━━━━━━━━━━━━━\n"
+            
+            members_list.append(member_info)
+            member_count += 1
+            
+            # إرسال الدفعات كل 5 أعضاء لتجنب تجاوز حد الأحرف
+            if len(members_list) >= 5:
+                chunk_text = members_text + "\n".join(members_list[:5])
+                try:
+                    bot.send_message(admin_id, chunk_text, parse_mode="Markdown")
+                    time.sleep(0.3)  # تأخير بسيط لتجنب القيود
+                except Exception as e:
+                    print(f"خطأ في إرسال الرسالة: {e}")
+                    # محاولة إرسال رسالة أقصر
+                    error_msg = f"👥 الأعضاء من {member_count-4} إلى {member_count}: تم تحميل {len(members_list)} عضو"
+                    bot.send_message(admin_id, error_msg)
+                
+                members_list = members_list[5:] if len(members_list) > 5 else []
+                
+        except Exception as e:
+            print(f"خطأ في معالجة العضو {user_id}: {e}")
+            continue
+    
+    # إرسال الأعضاء المتبقين
+    if members_list:
+        final_text = "📋 **استكمال قائمة الأعضاء:**\n━━━━━━━━━━━━━━\n\n" + "\n".join(members_list)
+        try:
+            bot.send_message(admin_id, final_text, parse_mode="Markdown")
+        except:
+            # إذا كانت الرسالة طويلة جداً، قسمها
+            for i in range(0, len(final_text), 4000):
+                chunk = final_text[i:i+4000]
+                bot.send_message(admin_id, chunk, parse_mode="Markdown")
+                time.sleep(0.2)
+    
+    # إرسال ملخص
+    summary = f"✅ **تم تحميل {member_count} من أصل {total_members} عضو**\n"
+    summary += f"📊 **نسبة العرض:** {round((member_count/total_members)*100, 2)}%\n"
+    summary += "━━━━━━━━━━━━━━\n"
+    summary += "💡 **ملاحظة:** قد لا تظهر بعض الأعضاء بسبب قيود التليجرام أو حسابات مغلقة."
+    
+    bot.send_message(admin_id, summary, parse_mode="Markdown")
+
+def show_members_list_fast(admin_id):
+    """عرض قائمة الأعضاء بسرعة باستخدام البيانات المخزنة فقط"""
+    data = load_json(DB_FILE, {})
+    
+    if not data:
+        bot.send_message(admin_id, STRINGS['ar']['no_members'])
+        return
+    
+    total_members = len(data)
+    
+    # حساب الإحصائيات
+    total_points = sum(user.get('points', 0) for user in data.values())
+    total_purchases = sum(user.get('purchases', 0) for user in data.values())
+    total_spent = sum(user.get('spent_points', 0) for user in data.values())
+    
+    # إرسال الإحصائيات أولاً
+    stats_text = f"📊 **إحصائيات الأعضاء**\n━━━━━━━━━━━━━━\n\n"
+    stats_text += f"👥 **إجمالي الأعضاء:** {total_members}\n"
+    stats_text += f"💰 **إجمالي النقاط:** {total_points}\n"
+    stats_text += f"🛍️ **إجمالي المشتريات:** {total_purchases}\n"
+    stats_text += f"💸 **إجمالي النقاط المستخدمة:** {total_spent}\n"
+    stats_text += f"📈 **متوسط النقاط لكل عضو:** {round(total_points/total_members, 2) if total_members > 0 else 0}\n"
+    stats_text += "━━━━━━━━━━━━━━\n"
+    
+    bot.send_message(admin_id, stats_text, parse_mode="Markdown")
+    
+    # عرض 20 عضو عشوائي كمثال
+    members_list = []
+    sample_size = min(20, total_members)
+    
+    # أخذ عينة عشوائية
+    sample_users = random.sample(list(data.items()), sample_size)
+    
+    for user_id, user_data in sample_users:
+        points = user_data.get('points', 0)
+        purchases = user_data.get('purchases', 0)
+        spent_points = user_data.get('spent_points', 0)
+        referrals = len([u for u in data.values() if u.get('referred_by') == user_id])
+        
+        member_info = f"🆔 `{user_id}`\n"
+        member_info += f"💰 النقاط: {points} | 🛍️ المشتريات: {purchases}\n"
+        member_info += f"💸 المستخدم: {spent_points} | 👥 أحاله: {referrals}\n"
+        member_info += f"━━━━━━━━━━━━━━\n"
+        
+        members_list.append(member_info)
+    
+    members_text = f"🎯 **عينة عشوائية ({sample_size} عضو):**\n━━━━━━━━━━━━━━\n\n" + "\n".join(members_list)
+    
+    # قسمة النص إذا كان طويلاً
+    if len(members_text) > 4000:
+        parts = [members_text[i:i+4000] for i in range(0, len(members_text), 4000)]
+        for i, part in enumerate(parts, 1):
+            if i == 1:
+                bot.send_message(admin_id, part, parse_mode="Markdown")
+            else:
+                bot.send_message(admin_id, f"📄 **الجزء {i}:**\n{part}", parse_mode="Markdown")
+            time.sleep(0.2)
+    else:
+        bot.send_message(admin_id, members_text, parse_mode="Markdown")
 
 # --- البداية ---
 @bot.message_handler(commands=['start'])
@@ -923,7 +1083,51 @@ def callback_handler(call):
     
     elif call.data == 'view_members':
         if is_admin(user_id):
+            markup = types.InlineKeyboardMarkup(row_width=2)
+            markup.add(
+                types.InlineKeyboardButton(s['view_members_full'], callback_data='view_members_full'),
+                types.InlineKeyboardButton(s['view_members_fast'], callback_data='view_members_fast'),
+                types.InlineKeyboardButton(s['view_stats_only'], callback_data='view_stats_only')
+            )
+            bot.send_message(user_id, s['choose_members_view'], reply_markup=markup, parse_mode="Markdown")
+    
+    elif call.data == 'view_members_full':
+        if is_admin(user_id):
             show_members_list(user_id)
+    
+    elif call.data == 'view_members_fast':
+        if is_admin(user_id):
+            show_members_list_fast(user_id)
+    
+    elif call.data == 'view_stats_only':
+        if is_admin(user_id):
+            data = load_json(DB_FILE, {})
+            if not data:
+                bot.send_message(user_id, s['no_members'])
+                return
+            
+            total_members = len(data)
+            total_points = sum(user.get('points', 0) for user in data.values())
+            total_purchases = sum(user.get('purchases', 0) for user in data.values())
+            total_spent = sum(user.get('spent_points', 0) for user in data.values())
+            
+            # حساب الأعضاء النشطين (نقاط > 0 أو مشتريات > 0)
+            active_members = sum(1 for user in data.values() if user.get('points', 0) > 0 or user.get('purchases', 0) > 0)
+            active_percent = round((active_members/total_members)*100, 2) if total_members > 0 else 0
+            
+            stats_text = s['members_stats'].format(
+                total=total_members,
+                active=active_members,
+                active_percent=active_percent,
+                total_points=total_points,
+                total_purchases=total_purchases,
+                total_spent=total_spent,
+                avg_points=round(total_points/total_members, 2) if total_members > 0 else 0,
+                avg_purchases=round(total_purchases/total_members, 2) if total_members > 0 else 0,
+                update_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            )
+            
+            bot.send_message(user_id, stats_text, parse_mode="Markdown")
     
     elif call.data == 'add_admin':
         if is_admin(user_id):
@@ -1062,54 +1266,6 @@ def callback_handler(call):
                 bot.send_message(user_id, "❌ هذه القناة غير موجودة في القائمة.")
 
 # ============ وظائف معالجة الخطوات ============
-
-def show_members_list(admin_id):
-    """عرض قائمة الأعضاء"""
-    data = load_json(DB_FILE, {})
-    
-    if not data:
-        bot.send_message(admin_id, "ℹ️ لا يوجد أعضاء في البوت بعد.")
-        return
-    
-    total_members = len(data)
-    members_text = f"👥 **إحصائيات الأعضاء**\n━━━━━━━━━━━━━━\n\n"
-    members_text += f"📊 **إجمالي الأعضاء:** {total_members} عضو\n\n"
-    members_text += "📋 **قائمة الأعضاء:**\n━━━━━━━━━━━━━━\n\n"
-    
-    members_list = []
-    for user_id, user_data in data.items():
-        try:
-            user_info = bot.get_chat(user_id)
-            username = f"@{user_info.username}" if user_info.username else "بدون يوزر"
-            first_name = user_info.first_name or "غير معروف"
-            last_name = f" {user_info.last_name}" if user_info.last_name else ""
-            full_name = f"{first_name}{last_name}"
-            
-            points = user_data.get('points', 0)
-            purchases = user_data.get('purchases', 0)
-            
-            member_info = f"👤 {full_name} ({username})\n💰 النقاط: {points} | 🛍️ المشتريات: {purchases}\n🆔 المعرف: `{user_id}`\n━━━━━━━━━━━━━━"
-            members_list.append(member_info)
-        except:
-            continue
-    
-    if not members_list:
-        bot.send_message(admin_id, "ℹ️ لا يمكن عرض معلومات الأعضاء.")
-        return
-    
-    for i in range(0, len(members_list), 10):
-        chunk = members_list[i:i+10]
-        
-        if i == 0:
-            message_text = members_text + "\n".join(chunk)
-        else:
-            message_text = "📋 **استكمال قائمة الأعضاء:**\n━━━━━━━━━━━━━━\n\n" + "\n".join(chunk)
-        
-        try:
-            bot.send_message(admin_id, message_text, parse_mode="Markdown")
-            time.sleep(0.5)
-        except:
-            continue
 
 def process_transfer_user(message):
     admin_id = str(message.chat.id)
