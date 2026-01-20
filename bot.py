@@ -31,6 +31,7 @@ NETFLIX_FILE = "netflix_accounts.json"
 ICLOUD_FILE = "icloud_accounts.json"
 MANDATORY_CHANNELS_FILE = "mandatory_channels.json"
 TELEGRAM_ORDERS_FILE = "telegram_orders.json"
+PURCHASES_HISTORY_FILE = "purchases_history.json"  # ملف جديد لتسجيل المشتريات
 
 # --- قائمة الدول وأكوادها ---
 TELEGRAM_COUNTRIES = [
@@ -117,6 +118,43 @@ def generate_random_number(country_code):
     
     return f"{country_code}{remaining}"
 
+# --- وظائف إدارة المشتريات ---
+def save_purchase_history(purchase_data):
+    """حفظ سجل المشتريات"""
+    history = load_json(PURCHASES_HISTORY_FILE, [])
+    if not isinstance(history, list):
+        history = [history] if history else []
+    
+    # إضافة معرف فريد للشراء
+    purchase_data['purchase_id'] = f"PUR-{int(time.time())}-{random.randint(1000, 9999)}"
+    purchase_data['timestamp'] = time.time()
+    purchase_data['date_time'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    history.append(purchase_data)
+    save_json(PURCHASES_HISTORY_FILE, history)
+
+def get_purchase_history(limit=50):
+    """الحصول على سجل المشتريات"""
+    history = load_json(PURCHASES_HISTORY_FILE, [])
+    if not isinstance(history, list):
+        history = [history] if history else []
+    
+    # ترتيب حسب الأحدث
+    history.sort(key=lambda x: x.get('timestamp', 0), reverse=True)
+    
+    return history[:limit]
+
+def get_user_purchases(user_id):
+    """الحصول على مشتريات مستخدم معين"""
+    history = load_json(PURCHASES_HISTORY_FILE, [])
+    if not isinstance(history, list):
+        history = [history] if history else []
+    
+    user_purchases = [p for p in history if p.get('user_id') == str(user_id)]
+    user_purchases.sort(key=lambda x: x.get('timestamp', 0), reverse=True)
+    
+    return user_purchases
+
 # --- قاموس النصوص ---
 STRINGS = {
     'ar': {
@@ -197,12 +235,14 @@ STRINGS = {
         'telegram_order_status_pending': "⏳ قيد الانتظار",
         'telegram_order_status_completed': "✅ مكتمل",
         'telegram_order_status_cancelled': "❌ ملغي",
-        'view_members_full': "📊 عرض كامل",
-        'view_members_fast': "🚀 عرض سريع",
-        'view_stats_only': "📈 إحصائيات فقط",
-        'choose_members_view': "👥 **اختر طريقة عرض الأعضاء:**",
+        'view_members': "👥 عرض الأعضاء",
+        'view_purchases': "🛒 عرض المشتريات",
         'no_members': "ℹ️ لا يوجد أعضاء في البوت بعد.",
-        'members_stats': "📊 **إحصائيات شاملة للأعضاء**\n━━━━━━━━━━━━━━\n\n👥 **إجمالي الأعضاء:** {total}\n🚀 **الأعضاء النشطين:** {active} ({active_percent}%)\n💰 **إجمالي النقاط:** {total_points}\n🛍️ **إجمالي المشتريات:** {total_purchases}\n💸 **إجمالي النقاط المستخدمة:** {total_spent}\n📈 **متوسط النقاط:** {avg_points}\n🏪 **متوسط المشتريات:** {avg_purchases}\n━━━━━━━━━━━━━━\n📅 **آخر تحديث:** {update_time}",
+        'members_stats': "📊 **إحصائيات الأعضاء**\n━━━━━━━━━━━━━━\n\n👥 **إجمالي الأعضاء:** {total}\n🚀 **الأعضاء النشطين:** {active} ({active_percent}%)\n💰 **إجمالي النقاط:** {total_points}\n🛍️ **إجمالي المشتريات:** {total_purchases}\n💸 **إجمالي النقاط المستخدمة:** {total_spent}\n📈 **متوسط النقاط:** {avg_points}\n🏪 **متوسط المشتريات:** {avg_purchases}\n━━━━━━━━━━━━━━\n📅 **آخر تحديث:** {update_time}",
+        'purchases_stats': "📊 **إحصائيات المشتريات**\n━━━━━━━━━━━━━━\n\n🛍️ **إجمالي المشتريات:** {total}\n💰 **إجمالي المبلغ:** {total_amount} نقطة\n👥 **عدد المشترين:** {buyers}\n📈 **متوسط الشراء:** {avg_purchase} نقطة\n🏪 **أكثر المنتجات مبيعاً:** {top_product}\n📅 **آخر تحديث:** {update_time}",
+        'no_purchases': "ℹ️ لا توجد مشتريات مسجلة بعد.",
+        'purchase_item': "🛍️ **الشراء #{num}**\n👤 **المشتري:** {username}\n📦 **المنتج:** {product}\n💰 **السعر:** {price} نقطة\n🆔 **معرف المشتري:** `{user_id}`\n📅 **التاريخ:** {date}\n⏰ **الوقت:** {time}\n━━━━━━━━━━━━━━",
+        'purchase_details': "📋 **تفاصيل الشراء**\n━━━━━━━━━━━━━━\n\n🆔 **كود الشراء:** `{purchase_id}`\n👤 **المشتري:** {username}\n📦 **المنتج:** {product}\n💰 **السعر:** {price} نقطة\n📅 **التاريخ:** {date}\n⏰ **الوقت:** {time}\n🔢 **الحساب:** `{account}`\n━━━━━━━━━━━━━━",
     },
     'en': {
         'welcome_msg': "🦖 Welcome to RexSub 🔥\n━━━━━━━━━━━━━━\nWe're thrilled to have you! This bot is dedicated to providing a variety of premium accounts.\n\n💡 Start collecting points or browse the store now.",
@@ -284,12 +324,14 @@ STRINGS = {
         'telegram_order_status_pending': "⏳ Pending",
         'telegram_order_status_completed': "✅ Completed",
         'telegram_order_status_cancelled': "❌ Cancelled",
-        'view_members_full': "📊 Full View",
-        'view_members_fast': "🚀 Fast View",
-        'view_stats_only': "📈 Statistics Only",
-        'choose_members_view': "👥 **Choose Members View Method:**",
+        'view_members': "👥 View Members",
+        'view_purchases': "🛒 View Purchases",
         'no_members': "ℹ️ No members in the bot yet.",
-        'members_stats': "📊 **Comprehensive Member Statistics**\n━━━━━━━━━━━━━━\n\n👥 **Total Members:** {total}\n🚀 **Active Members:** {active} ({active_percent}%)\n💰 **Total Points:** {total_points}\n🛍️ **Total Purchases:** {total_purchases}\n💸 **Total Points Spent:** {total_spent}\n📈 **Average Points:** {avg_points}\n🏪 **Average Purchases:** {avg_purchases}\n━━━━━━━━━━━━━━\n📅 **Last Update:** {update_time}",
+        'members_stats': "📊 **Member Statistics**\n━━━━━━━━━━━━━━\n\n👥 **Total Members:** {total}\n🚀 **Active Members:** {active} ({active_percent}%)\n💰 **Total Points:** {total_points}\n🛍️ **Total Purchases:** {total_purchases}\n💸 **Total Points Spent:** {total_spent}\n📈 **Average Points:** {avg_points}\n🏪 **Average Purchases:** {avg_purchases}\n━━━━━━━━━━━━━━\n📅 **Last Update:** {update_time}",
+        'purchases_stats': "📊 **Purchase Statistics**\n━━━━━━━━━━━━━━\n\n🛍️ **Total Purchases:** {total}\n💰 **Total Amount:** {total_amount} Points\n👥 **Number of Buyers:** {buyers}\n📈 **Average Purchase:** {avg_purchase} Points\n🏪 **Best Selling Product:** {top_product}\n📅 **Last Update:** {update_time}",
+        'no_purchases': "ℹ️ No purchases recorded yet.",
+        'purchase_item': "🛍️ **Purchase #{num}**\n👤 **Buyer:** {username}\n📦 **Product:** {product}\n💰 **Price:** {price} Points\n🆔 **Buyer ID:** `{user_id}`\n📅 **Date:** {date}\n⏰ **Time:** {time}\n━━━━━━━━━━━━━━",
+        'purchase_details': "📋 **Purchase Details**\n━━━━━━━━━━━━━━\n\n🆔 **Purchase Code:** `{purchase_id}`\n👤 **Buyer:** {username}\n📦 **Product:** {product}\n💰 **Price:** {price} Points\n📅 **Date:** {date}\n⏰ **Time:** {time}\n🔢 **Account:** `{account}`\n━━━━━━━━━━━━━━",
     }
 }
 
@@ -416,7 +458,7 @@ def delete_icloud_account(index):
         return True
     return False
 
-# ============ وظائف عرض الأعضاء ============
+# ============ وظائف عرض الأعضاء والمشتريات ============
 
 def show_members_list(admin_id):
     """عرض قائمة الأعضاء"""
@@ -427,9 +469,9 @@ def show_members_list(admin_id):
         return
     
     total_members = len(data)
-    members_text = f"👥 **إحصائيات الأعضاء**\n━━━━━━━━━━━━━━\n\n"
+    members_text = f"👥 **قائمة الأعضاء**\n━━━━━━━━━━━━━━\n\n"
     members_text += f"📊 **إجمالي الأعضاء:** {total_members} عضو\n\n"
-    members_text += "📋 **قائمة الأعضاء:**\n━━━━━━━━━━━━━━\n\n"
+    members_text += "📋 **تفاصيل الأعضاء:**\n━━━━━━━━━━━━━━\n\n"
     
     members_list = []
     member_count = 0
@@ -447,12 +489,15 @@ def show_members_list(admin_id):
                 # إذا فشل الحصول على المعلومات، استخدم البيانات المخزنة
                 username = "غير متاح"
                 full_name = "مستخدم مجهول"
-                print(f"خطأ في جلب معلومات المستخدم {user_id}: {e}")
             
             # الحصول على البيانات من قاعدة البيانات
             points = user_data.get('points', 0)
             purchases = user_data.get('purchases', 0)
             spent_points = user_data.get('spent_points', 0)
+            lang = user_data.get('lang', 'ar')
+            
+            # حساب عدد الإحالات
+            referrals = len([u for u in data.values() if u.get('referred_by') == user_id])
             
             # إضافة معلومات العضو
             member_info = f"👤 **{full_name}**\n"
@@ -460,28 +505,28 @@ def show_members_list(admin_id):
             member_info += f"💰 النقاط الحالية: {points}\n"
             member_info += f"🛍️ المشتريات: {purchases}\n"
             member_info += f"💸 النقاط المستخدمة: {spent_points}\n"
+            member_info += f"👥 الإحالات: {referrals}\n"
+            member_info += f"🌐 اللغة: {'عربي' if lang == 'ar' else 'إنجليزي'}\n"
             member_info += f"🆔 المعرف: `{user_id}`\n"
             member_info += f"━━━━━━━━━━━━━━\n"
             
             members_list.append(member_info)
             member_count += 1
             
-            # إرسال الدفعات كل 5 أعضاء لتجنب تجاوز حد الأحرف
-            if len(members_list) >= 5:
-                chunk_text = members_text + "\n".join(members_list[:5])
+            # إرسال الدفعات كل 3 أعضاء لتجنب تجاوز حد الأحرف
+            if len(members_list) >= 3:
+                chunk_text = members_text + "\n".join(members_list[:3])
                 try:
                     bot.send_message(admin_id, chunk_text, parse_mode="Markdown")
-                    time.sleep(0.3)  # تأخير بسيط لتجنب القيود
+                    time.sleep(0.5)  # تأخير لتجنب القيود
                 except Exception as e:
-                    print(f"خطأ في إرسال الرسالة: {e}")
                     # محاولة إرسال رسالة أقصر
-                    error_msg = f"👥 الأعضاء من {member_count-4} إلى {member_count}: تم تحميل {len(members_list)} عضو"
+                    error_msg = f"👥 الأعضاء من {member_count-2} إلى {member_count}: تم تحميل {len(members_list)} عضو"
                     bot.send_message(admin_id, error_msg)
                 
-                members_list = members_list[5:] if len(members_list) > 5 else []
+                members_list = members_list[3:] if len(members_list) > 3 else []
                 
         except Exception as e:
-            print(f"خطأ في معالجة العضو {user_id}: {e}")
             continue
     
     # إرسال الأعضاء المتبقين
@@ -494,75 +539,93 @@ def show_members_list(admin_id):
             for i in range(0, len(final_text), 4000):
                 chunk = final_text[i:i+4000]
                 bot.send_message(admin_id, chunk, parse_mode="Markdown")
-                time.sleep(0.2)
+                time.sleep(0.3)
     
     # إرسال ملخص
-    summary = f"✅ **تم تحميل {member_count} من أصل {total_members} عضو**\n"
+    summary = f"✅ **تم عرض {member_count} من أصل {total_members} عضو**\n"
     summary += f"📊 **نسبة العرض:** {round((member_count/total_members)*100, 2)}%\n"
     summary += "━━━━━━━━━━━━━━\n"
-    summary += "💡 **ملاحظة:** قد لا تظهر بعض الأعضاء بسبب قيود التليجرام أو حسابات مغلقة."
+    summary += "💡 **ملاحظة:** يعرض فقط المستخدمين الذين دخلوا البوت عبر /start"
     
     bot.send_message(admin_id, summary, parse_mode="Markdown")
 
-def show_members_list_fast(admin_id):
-    """عرض قائمة الأعضاء بسرعة باستخدام البيانات المخزنة فقط"""
-    data = load_json(DB_FILE, {})
+def show_purchases_list(admin_id):
+    """عرض قائمة المشتريات"""
+    purchases = get_purchase_history(50)
     
-    if not data:
-        bot.send_message(admin_id, STRINGS['ar']['no_members'])
+    if not purchases:
+        bot.send_message(admin_id, STRINGS['ar']['no_purchases'])
         return
     
-    total_members = len(data)
+    total_purchases = len(purchases)
+    total_amount = sum(p.get('price', 0) for p in purchases)
     
-    # حساب الإحصائيات
-    total_points = sum(user.get('points', 0) for user in data.values())
-    total_purchases = sum(user.get('purchases', 0) for user in data.values())
-    total_spent = sum(user.get('spent_points', 0) for user in data.values())
+    # حساب إحصائيات المشتريات
+    buyers = len(set(p.get('user_id') for p in purchases))
+    
+    # حساب أكثر المنتجات مبيعاً
+    product_counts = {}
+    for purchase in purchases:
+        product = purchase.get('product', 'غير معروف')
+        product_counts[product] = product_counts.get(product, 0) + 1
+    
+    top_product = max(product_counts.items(), key=lambda x: x[1])[0] if product_counts else "لا يوجد"
     
     # إرسال الإحصائيات أولاً
-    stats_text = f"📊 **إحصائيات الأعضاء**\n━━━━━━━━━━━━━━\n\n"
-    stats_text += f"👥 **إجمالي الأعضاء:** {total_members}\n"
-    stats_text += f"💰 **إجمالي النقاط:** {total_points}\n"
-    stats_text += f"🛍️ **إجمالي المشتريات:** {total_purchases}\n"
-    stats_text += f"💸 **إجمالي النقاط المستخدمة:** {total_spent}\n"
-    stats_text += f"📈 **متوسط النقاط لكل عضو:** {round(total_points/total_members, 2) if total_members > 0 else 0}\n"
-    stats_text += "━━━━━━━━━━━━━━\n"
+    stats_text = STRINGS['ar']['purchases_stats'].format(
+        total=total_purchases,
+        total_amount=total_amount,
+        buyers=buyers,
+        avg_purchase=round(total_amount/total_purchases, 2) if total_purchases > 0 else 0,
+        top_product=top_product,
+        update_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    )
     
     bot.send_message(admin_id, stats_text, parse_mode="Markdown")
+    time.sleep(1)
     
-    # عرض 20 عضو عشوائي كمثال
-    members_list = []
-    sample_size = min(20, total_members)
+    # عرض تفاصيل المشتريات
+    purchases_text = f"🛒 **آخر {min(20, total_purchases)} عملية شراء**\n━━━━━━━━━━━━━━\n\n"
     
-    # أخذ عينة عشوائية
-    sample_users = random.sample(list(data.items()), sample_size)
+    for i, purchase in enumerate(purchases[:20], 1):
+        try:
+            user_id = purchase.get('user_id', 'غير معروف')
+            username = purchase.get('username', 'غير معروف')
+            product = purchase.get('product', 'غير معروف')
+            price = purchase.get('price', 0)
+            date = purchase.get('date', 'غير معروف')
+            time_str = purchase.get('time', 'غير معروف')
+            
+            purchase_item = STRINGS['ar']['purchase_item'].format(
+                num=i,
+                username=username,
+                product=product,
+                price=price,
+                user_id=user_id,
+                date=date,
+                time=time_str
+            )
+            
+            purchases_text += purchase_item + "\n"
+            
+            # إرسال كل 3 مشتريات في رسالة واحدة
+            if i % 3 == 0:
+                bot.send_message(admin_id, purchases_text, parse_mode="Markdown")
+                purchases_text = ""
+                time.sleep(0.5)
+                
+        except Exception as e:
+            continue
     
-    for user_id, user_data in sample_users:
-        points = user_data.get('points', 0)
-        purchases = user_data.get('purchases', 0)
-        spent_points = user_data.get('spent_points', 0)
-        referrals = len([u for u in data.values() if u.get('referred_by') == user_id])
-        
-        member_info = f"🆔 `{user_id}`\n"
-        member_info += f"💰 النقاط: {points} | 🛍️ المشتريات: {purchases}\n"
-        member_info += f"💸 المستخدم: {spent_points} | 👥 أحاله: {referrals}\n"
-        member_info += f"━━━━━━━━━━━━━━\n"
-        
-        members_list.append(member_info)
+    # إرسال المشتريات المتبقية
+    if purchases_text.strip():
+        bot.send_message(admin_id, purchases_text, parse_mode="Markdown")
     
-    members_text = f"🎯 **عينة عشوائية ({sample_size} عضو):**\n━━━━━━━━━━━━━━\n\n" + "\n".join(members_list)
-    
-    # قسمة النص إذا كان طويلاً
-    if len(members_text) > 4000:
-        parts = [members_text[i:i+4000] for i in range(0, len(members_text), 4000)]
-        for i, part in enumerate(parts, 1):
-            if i == 1:
-                bot.send_message(admin_id, part, parse_mode="Markdown")
-            else:
-                bot.send_message(admin_id, f"📄 **الجزء {i}:**\n{part}", parse_mode="Markdown")
-            time.sleep(0.2)
-    else:
-        bot.send_message(admin_id, members_text, parse_mode="Markdown")
+    # زر لعرض المزيد من المشتريات
+    if total_purchases > 20:
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton("📋 عرض المزيد من المشتريات", callback_data='view_more_purchases'))
+        bot.send_message(admin_id, f"📊 **هناك {total_purchases - 20} عملية شراء إضافية**", reply_markup=markup)
 
 # --- البداية ---
 @bot.message_handler(commands=['start'])
@@ -745,7 +808,8 @@ def handle_msg(message):
             if is_admin(user_id):
                 markup = types.InlineKeyboardMarkup(row_width=1)
                 markup.add(types.InlineKeyboardButton("➕ تحويل النقاط", callback_data='admin_transfer'))
-                markup.add(types.InlineKeyboardButton("👥 عرض الأعضاء", callback_data='view_members'))
+                markup.add(types.InlineKeyboardButton(s['view_members'], callback_data='view_members'))
+                markup.add(types.InlineKeyboardButton(s['view_purchases'], callback_data='view_purchases'))
                 markup.add(types.InlineKeyboardButton(s['add_netflix'], callback_data='add_netflix'))
                 markup.add(types.InlineKeyboardButton(s['view_netflix'], callback_data='view_netflix'))
                 markup.add(types.InlineKeyboardButton(s['add_icloud'], callback_data='add_icloud'))
@@ -856,6 +920,25 @@ def callback_handler(call):
                     user_data['spent_points'] += required_points
                     user_data['points'] -= required_points
                     save_json(DB_FILE, data)
+                    
+                    # حفظ سجل الشراء
+                    try:
+                        user_info = bot.get_chat(user_id)
+                        username = f"@{user_info.username}" if user_info.username else "بدون يوزر"
+                    except:
+                        username = "غير معروف"
+                    
+                    purchase_data = {
+                        'user_id': user_id,
+                        'username': username,
+                        'product': 'Netflix',
+                        'price': required_points,
+                        'account': email,
+                        'date': datetime.now().strftime("%Y-%m-%d"),
+                        'time': datetime.now().strftime("%H:%M:%S")
+                    }
+                    save_purchase_history(purchase_data)
+                    
                     bot.delete_message(user_id, loading_msg.message_id)
                     bot.send_message(user_id, s['account_delivered'].format(email=email, password=password), parse_mode="Markdown")
                 else:
@@ -953,6 +1036,19 @@ def callback_handler(call):
                 data[user_id] = user_data
                 save_json(DB_FILE, data)
                 
+                # حفظ سجل الشراء
+                purchase_data = {
+                    'user_id': user_id,
+                    'username': username,
+                    'product': f'Telegram - {selected_country["name"]}',
+                    'price': PRODUCT_PRICES['buy_telegram'],
+                    'account': phone_number,
+                    'order_id': order_id,
+                    'date': datetime.now().strftime("%Y-%m-%d"),
+                    'time': datetime.now().strftime("%H:%M:%S")
+                }
+                save_purchase_history(purchase_data)
+                
                 bot.delete_message(user_id, processing_msg.message_id)
                 
                 if lang == 'ar':
@@ -1048,6 +1144,25 @@ def callback_handler(call):
                 user_data['spent_points'] += PRODUCT_PRICES['buy_icloud']
                 user_data['points'] -= PRODUCT_PRICES['buy_icloud']
                 save_json(DB_FILE, data)
+                
+                # حفظ سجل الشراء
+                try:
+                    user_info = bot.get_chat(user_id)
+                    username = f"@{user_info.username}" if user_info.username else "بدون يوزر"
+                except:
+                    username = "غير معروف"
+                
+                purchase_data = {
+                    'user_id': user_id,
+                    'username': username,
+                    'product': 'iCloud',
+                    'price': PRODUCT_PRICES['buy_icloud'],
+                    'account': email,
+                    'date': datetime.now().strftime("%Y-%m-%d"),
+                    'time': datetime.now().strftime("%H:%M:%S")
+                }
+                save_purchase_history(purchase_data)
+                
                 bot.delete_message(user_id, loading_msg.message_id)
                 bot.send_message(user_id, s['account_delivered'].format(email=email, password=password), parse_mode="Markdown")
                 
@@ -1083,51 +1198,58 @@ def callback_handler(call):
     
     elif call.data == 'view_members':
         if is_admin(user_id):
-            markup = types.InlineKeyboardMarkup(row_width=2)
-            markup.add(
-                types.InlineKeyboardButton(s['view_members_full'], callback_data='view_members_full'),
-                types.InlineKeyboardButton(s['view_members_fast'], callback_data='view_members_fast'),
-                types.InlineKeyboardButton(s['view_stats_only'], callback_data='view_stats_only')
-            )
-            bot.send_message(user_id, s['choose_members_view'], reply_markup=markup, parse_mode="Markdown")
-    
-    elif call.data == 'view_members_full':
-        if is_admin(user_id):
             show_members_list(user_id)
     
-    elif call.data == 'view_members_fast':
+    elif call.data == 'view_purchases':
         if is_admin(user_id):
-            show_members_list_fast(user_id)
+            show_purchases_list(user_id)
     
-    elif call.data == 'view_stats_only':
+    elif call.data == 'view_more_purchases':
         if is_admin(user_id):
-            data = load_json(DB_FILE, {})
-            if not data:
-                bot.send_message(user_id, s['no_members'])
+            purchases = get_purchase_history(100)  # عرض 100 عملية شراء
+            
+            if not purchases:
+                bot.send_message(user_id, STRINGS['ar']['no_purchases'])
                 return
             
-            total_members = len(data)
-            total_points = sum(user.get('points', 0) for user in data.values())
-            total_purchases = sum(user.get('purchases', 0) for user in data.values())
-            total_spent = sum(user.get('spent_points', 0) for user in data.values())
+            # عرض العمليات من 21 إلى 100
+            purchases_text = f"🛒 **المشتريات من 21 إلى {len(purchases)}**\n━━━━━━━━━━━━━━\n\n"
             
-            # حساب الأعضاء النشطين (نقاط > 0 أو مشتريات > 0)
-            active_members = sum(1 for user in data.values() if user.get('points', 0) > 0 or user.get('purchases', 0) > 0)
-            active_percent = round((active_members/total_members)*100, 2) if total_members > 0 else 0
+            for i, purchase in enumerate(purchases[20:], 21):
+                try:
+                    user_id_p = purchase.get('user_id', 'غير معروف')
+                    username = purchase.get('username', 'غير معروف')
+                    product = purchase.get('product', 'غير معروف')
+                    price = purchase.get('price', 0)
+                    date = purchase.get('date', 'غير معروف')
+                    time_str = purchase.get('time', 'غير معروف')
+                    
+                    purchase_item = STRINGS['ar']['purchase_item'].format(
+                        num=i,
+                        username=username,
+                        product=product,
+                        price=price,
+                        user_id=user_id_p,
+                        date=date,
+                        time=time_str
+                    )
+                    
+                    purchases_text += purchase_item + "\n"
+                    
+                    # إرسال كل 3 مشتريات في رسالة واحدة
+                    if (i - 20) % 3 == 0:
+                        bot.send_message(user_id, purchases_text, parse_mode="Markdown")
+                        purchases_text = ""
+                        time.sleep(0.5)
+                        
+                except Exception as e:
+                    continue
             
-            stats_text = s['members_stats'].format(
-                total=total_members,
-                active=active_members,
-                active_percent=active_percent,
-                total_points=total_points,
-                total_purchases=total_purchases,
-                total_spent=total_spent,
-                avg_points=round(total_points/total_members, 2) if total_members > 0 else 0,
-                avg_purchases=round(total_purchases/total_members, 2) if total_members > 0 else 0,
-                update_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            )
+            # إرسال المشتريات المتبقية
+            if purchases_text.strip():
+                bot.send_message(user_id, purchases_text, parse_mode="Markdown")
             
-            bot.send_message(user_id, stats_text, parse_mode="Markdown")
+            bot.send_message(user_id, f"✅ **تم عرض إجمالي {len(purchases)} عملية شراء**")
     
     elif call.data == 'add_admin':
         if is_admin(user_id):
@@ -1493,6 +1615,7 @@ print("🚀 RexSub Bot is starting...")
 print(f"📱 Token: {API_TOKEN[:10]}...")
 print("✅ Bot configured for Railway deployment")
 print("🛡️ Anti-spam protection activated")
+print("📊 Purchase history system activated")
 
 if __name__ == "__main__":
     try:
