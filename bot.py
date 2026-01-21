@@ -156,61 +156,54 @@ def get_user_purchases(user_id):
 # --- فحص سلامة البيانات ---
 def check_data_integrity():
     """فحص وإصلاح سلامة بيانات المستخدمين"""
-    data = load_json(DB_FILE, {})
-    needs_fix = False
-    
-    for user_id, user_data in data.items():
-        # التأكد من وجود الحقول الأساسية
-        if 'points' not in user_data:
-            user_data['points'] = 0
-            needs_fix = True
-            print(f"⚠️ إصلاح نقاط المستخدم {user_id}: إضافة حقل النقاط")
+    try:
+        data = load_json(DB_FILE, {})
+        needs_fix = False
         
-        # التأكد من أن النقاط هي عدد صحيح
-        if not isinstance(user_data['points'], (int, float)):
-            try:
-                user_data['points'] = int(user_data['points'])
-                needs_fix = True
-                print(f"⚠️ إصلاح نقاط المستخدم {user_id}: تحويل إلى عدد صحيح")
-            except:
+        for user_id, user_data in data.items():
+            # التأكد من وجود الحقول الأساسية
+            if 'points' not in user_data:
                 user_data['points'] = 0
                 needs_fix = True
-                print(f"⚠️ إصلاح نقاط المستخدم {user_id}: تعيين إلى 0")
+                print(f"⚠️ إصلاح نقاط المستخدم {user_id}: إضافة حقل النقاط")
+            
+            # التأكد من أن النقاط هي عدد صحيح
+            if not isinstance(user_data['points'], (int, float)):
+                try:
+                    user_data['points'] = int(user_data['points'])
+                    needs_fix = True
+                    print(f"⚠️ إصلاح نقاط المستخدم {user_id}: تحويل إلى عدد صحيح")
+                except:
+                    user_data['points'] = 0
+                    needs_fix = True
+                    print(f"⚠️ إصلاح نقاط المستخدم {user_id}: تعيين إلى 0")
+            
+            # التأكد من الحقول الأخرى
+            default_fields = {
+                'lang': 'ar',
+                'referred_by': None,
+                'rewarded': False,
+                'purchases': 0,
+                'spent_points': 0,
+                'lang_prompt_sent': False,
+                'unknown_command_sent': False,
+                'created_at': time.time(),
+                'last_seen': time.time()
+            }
+            
+            for field, default_value in default_fields.items():
+                if field not in user_data:
+                    user_data[field] = default_value
+                    needs_fix = True
         
-        # التأكد من الحقول الأخرى
-        if 'lang' not in user_data:
-            user_data['lang'] = 'ar'
-            needs_fix = True
+        if needs_fix:
+            print(f"✅ إصلاح بيانات {len(data)} مستخدم")
+            save_json(DB_FILE, data)
         
-        if 'referred_by' not in user_data:
-            user_data['referred_by'] = None
-            needs_fix = True
-        
-        if 'rewarded' not in user_data:
-            user_data['rewarded'] = False
-            needs_fix = True
-        
-        if 'purchases' not in user_data:
-            user_data['purchases'] = 0
-            needs_fix = True
-        
-        if 'spent_points' not in user_data:
-            user_data['spent_points'] = 0
-            needs_fix = True
-        
-        if 'lang_prompt_sent' not in user_data:
-            user_data['lang_prompt_sent'] = False
-            needs_fix = True
-        
-        if 'unknown_command_sent' not in user_data:
-            user_data['unknown_command_sent'] = False
-            needs_fix = True
-    
-    if needs_fix:
-        print(f"✅ إصلاح بيانات {len(data)} مستخدم")
-        save_json(DB_FILE, data)
-    
-    return data
+        return data
+    except Exception as e:
+        print(f"❌ خطأ في فحص سلامة البيانات: {e}")
+        return {}
 
 # --- قاموس النصوص ---
 STRINGS = {
@@ -450,58 +443,77 @@ def is_admin(user_id):
     try:
         if int(user_id) == OWNER_ID: return True
         admins = load_json(ADMINS_FILE, [])
-        user_info = bot.get_chat(user_id)
-        username = f"@{user_info.username}" if user_info.username else None
-        return (username in admins)
-    except: return False
+        if not admins:
+            return False
+        
+        try:
+            user_info = bot.get_chat(user_id)
+            username = f"@{user_info.username}" if user_info.username else None
+            return (username in admins)
+        except:
+            return False
+    except Exception as e:
+        print(f"❌ خطأ في التحقق من صلاحيات المدير {user_id}: {e}")
+        return False
 
 def is_subscribed(user_id):
     for ch in MANDATORY_CHANNELS:
         try:
             status = bot.get_chat_member(ch, user_id).status
-            if status not in ['member', 'administrator', 'creator']: return False
-        except: return False
+            if status not in ['member', 'administrator', 'creator']: 
+                return False
+        except Exception as e:
+            print(f"❌ خطأ في التحقق من الاشتراك في {ch}: {e}")
+            return False
     return True
 
 # --- إضافة حقول جديدة للمستخدم ---
 def ensure_user_data(user_id):
-    data = load_json(DB_FILE, {})
+    """التأكد من وجود بيانات المستخدم وإنشاءها إذا لم تكن موجودة"""
+    data = check_data_integrity()
+    
     if user_id not in data:
         data[user_id] = {
             'points': 0, 
-            'lang': None, 
+            'lang': 'ar',  # تعيين اللغة الافتراضية
             'referred_by': None, 
             'rewarded': False, 
             'purchases': 0, 
             'spent_points': 0,
-            'lang_prompt_sent': False,
+            'lang_prompt_sent': True,  # تم إرسال الرسالة
             'unknown_command_sent': False,
             'created_at': time.time(),
             'last_seen': time.time()
         }
+        save_json(DB_FILE, data)
+        print(f"✅ تم إنشاء مستخدم جديد: {user_id}")
     else:
-        # إضافة الحقول الجديدة إذا لم تكن موجودة
+        # التأكد من وجود جميع الحقول
         default_fields = {
             'points': 0,
-            'lang': None,
+            'lang': 'ar',
             'referred_by': None,
             'rewarded': False,
             'purchases': 0,
             'spent_points': 0,
-            'lang_prompt_sent': False,
+            'lang_prompt_sent': True,
             'unknown_command_sent': False,
             'created_at': time.time(),
             'last_seen': time.time()
         }
         
+        needs_update = False
         for field, default_value in default_fields.items():
             if field not in data[user_id]:
                 data[user_id][field] = default_value
+                needs_update = True
         
         # تحديث وقت آخر ظهور
         data[user_id]['last_seen'] = time.time()
+        
+        if needs_update:
+            save_json(DB_FILE, data)
     
-    save_json(DB_FILE, data)
     return data[user_id]
 
 # --- وظائف حسابات نتفلكس ---
@@ -832,45 +844,40 @@ def fix_points_data(admin_id):
     bot.send_message(admin_id, result_text, parse_mode="Markdown")
 
 # --- البداية ---
-@bot.message_handler(commands=['start'])
+@bot.message_handler(commands=['start', 'refresh'])
 def start(message):
     user_id = str(message.chat.id)
-    data = check_data_integrity()  # فحص السلامة أولاً
-  
+    
     command_parts = message.text.split()
     referrer_id = command_parts[1] if len(command_parts) > 1 and command_parts[1].isdigit() else None
     
-    if user_id not in data:
-        data[user_id] = {
-            'points': 0, 
-            'lang': None, 
-            'referred_by': referrer_id, 
-            'rewarded': False, 
-            'purchases': 0, 
-            'spent_points': 0,
-            'lang_prompt_sent': True,
-            'unknown_command_sent': False,
-            'created_at': time.time(),
-            'last_seen': time.time()
-        }
-        save_json(DB_FILE, data)
+    # إنشاء أو تحديث بيانات المستخدم
+    user_data = ensure_user_data(user_id)
     
-    user_data = data[user_id]
+    # حفظ المرجع إذا وجد
+    if referrer_id and referrer_id != user_id and not user_data.get('rewarded', False):
+        data = check_data_integrity()
+        if referrer_id in data:
+            data[referrer_id]['points'] += 1
+            user_data['referred_by'] = referrer_id
+            user_data['rewarded'] = True
+            save_json(DB_FILE, data)
+            
+            try:
+                bot.send_message(referrer_id, "🎉 **إحالة جديدة!**\nانضم شخص جديد باستخدام رابطك. +1 نقطة.", parse_mode="Markdown")
+            except:
+                pass
     
-    if user_data.get('lang'):
-        lang = user_data['lang']
-        bot.send_message(user_id, STRINGS[lang]['welcome_msg'], parse_mode="Markdown")
-        time.sleep(1)
-        show_main_menu(message.chat.id, lang, user_id)
-    else:
-        markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton("🌐 العربية", callback_data='lang_ar'),
-                   types.InlineKeyboardButton("🌐 English", callback_data='lang_en'))
-        bot.send_message(user_id, "🏮 Welcome to RexSub | اهلاً بك 🦖\nSelect your language / اختر اللغة:", reply_markup=markup)
-        
-        user_data['lang_prompt_sent'] = True
-        data[user_id] = user_data
-        save_json(DB_FILE, data)
+    # إعادة تعيين البيانات
+    user_data = ensure_user_data(user_id)
+    lang = user_data.get('lang', 'ar')
+    
+    # إرسال رسالة الترحيب
+    bot.send_message(user_id, STRINGS[lang]['welcome_msg'], parse_mode="Markdown")
+    time.sleep(1)
+    
+    # عرض القائمة الرئيسية
+    show_main_menu(message.chat.id, lang, user_id)
 
 # --- عرض القوائم ---
 def show_main_menu(chat_id, lang, user_id):
@@ -887,7 +894,6 @@ def show_main_menu(chat_id, lang, user_id):
 @bot.message_handler(func=lambda m: True)
 def handle_msg(message):
     user_id = str(message.chat.id)
-    data = check_data_integrity()  # فحص السلامة أولاً
     
     if not message.text:
         return
@@ -895,25 +901,13 @@ def handle_msg(message):
     if message.text.startswith('/'):
         return
     
-    if user_id not in data: 
-        return
+    # تأكد من وجود بيانات المستخدم
+    user_data = ensure_user_data(user_id)
     
-    user_data = data[user_id]
-    
-    if 'lang' not in user_data or not user_data['lang']:
-        if not user_data.get('lang_prompt_sent', False):
-            markup = types.InlineKeyboardMarkup()
-            markup.add(types.InlineKeyboardButton("🌐 العربية", callback_data='lang_ar'),
-                       types.InlineKeyboardButton("🌐 English", callback_data='lang_en'))
-            bot.send_message(user_id, "🏮 Please select your language / اختر اللغة:", reply_markup=markup)
-            user_data['lang_prompt_sent'] = True
-            data[user_id] = user_data
-            save_json(DB_FILE, data)
-        return
-    
-    lang = user_data.get('lang', 'ar') or 'ar'
+    lang = user_data.get('lang', 'ar')
     s = STRINGS[lang]
     
+    # التحقق من الاشتراك في القنوات
     if not is_subscribed(user_id):
         markup = types.InlineKeyboardMarkup(row_width=1)
         for ch in MANDATORY_CHANNELS:
@@ -922,8 +916,14 @@ def handle_msg(message):
         bot.send_message(user_id, s['sub_required'], reply_markup=markup, parse_mode="Markdown")
         return
     
-    user_data = ensure_user_data(user_id)
+    # تحديث وقت آخر ظهور
+    user_data['last_seen'] = time.time()
+    data = check_data_integrity()
+    if user_id in data:
+        data[user_id] = user_data
+        save_json(DB_FILE, data)
     
+    # الحصول على جميع نصوص الأزرار باللغتين
     all_button_texts = []
     for lang_code in STRINGS:
         lang_strings = STRINGS[lang_code]
@@ -946,20 +946,28 @@ def handle_msg(message):
             show_main_menu(message.chat.id, lang, user_id)
             bot.send_message(user_id, "🔍 لم أتعرف على طلبك. استخدم الأزرار أدناه للتنقل:")
             user_data['unknown_command_sent'] = True
-            data[user_id] = user_data
-            save_json(DB_FILE, data)
+            data = check_data_integrity()
+            if user_id in data:
+                data[user_id] = user_data
+                save_json(DB_FILE, data)
         return
     
+    # إعادة تعيين العلامات عند استخدام أمر صحيح
     user_data['unknown_command_sent'] = False
-    data[user_id] = user_data
-    save_json(DB_FILE, data)
+    data = check_data_integrity()
+    if user_id in data:
+        data[user_id] = user_data
+        save_json(DB_FILE, data)
     
+    # إذا كانت الرسالة من أزرار القائمة الرئيسية، قم بمعالجتها
     if is_menu_command:
         if user_text == s['my_account']:
             pts = user_data.get('points', 0)
             bot.send_message(user_id, s['acc_info'].format(pts=pts), parse_mode="Markdown")
         
         elif user_text == s['account_info']:
+            data = check_data_integrity()
+            user_data = data.get(user_id, user_data)
             current_points = user_data.get('points', 0)
             purchases = user_data.get('purchases', 0)
             referrals = len([u for u in data.values() if u.get('referred_by') == user_id])
@@ -1017,32 +1025,38 @@ def handle_msg(message):
 @bot.callback_query_handler(func=lambda call: True)
 def callback_handler(call):
     user_id = str(call.from_user.id)
-    data = check_data_integrity()  # فحص السلامة أولاً
     
-    if user_id not in data:
-        bot.answer_callback_query(call.id, "❌ يرجى البدء باستخدام الأمر /start أولاً", show_alert=True)
-        return
+    # التأكد من وجود المستخدم وإنشائه إذا لم يكن موجوداً
+    user_data = ensure_user_data(user_id)
     
-    lang = data[user_id].get('lang', 'ar')
+    lang = user_data.get('lang', 'ar')
     
+    # إعادة تعيين البيانات إذا كانت اللغة غير موجودة
     if not lang:
         lang = 'ar'
-        data[user_id]['lang'] = 'ar'
-        data[user_id]['lang_prompt_sent'] = True
+        user_data['lang'] = 'ar'
+        user_data['lang_prompt_sent'] = True
+        data = check_data_integrity()
+        data[user_id] = user_data
         save_json(DB_FILE, data)
     
     s = STRINGS[lang]
-    user_data = ensure_user_data(user_id)
-    pts = user_data.get('points', 0)
     
     if call.data.startswith('lang_'):
         lang = call.data.split('_')[1]
-        data[user_id]['lang'] = lang
-        data[user_id]['lang_prompt_sent'] = True
-        data[user_id]['unknown_command_sent'] = False
+        user_data['lang'] = lang
+        user_data['lang_prompt_sent'] = True
+        user_data['unknown_command_sent'] = False
+        
+        data = check_data_integrity()
+        data[user_id] = user_data
         save_json(DB_FILE, data)
         
-        bot.delete_message(call.message.chat.id, call.message.message_id)
+        try:
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+        except:
+            pass
+        
         bot.send_message(user_id, STRINGS[lang]['welcome_msg'], parse_mode="Markdown")
         
         time.sleep(1)
@@ -1050,15 +1064,23 @@ def callback_handler(call):
         
     elif call.data == 'verify':
         if is_subscribed(user_id):
+            data = check_data_integrity()
             ref_id = data[user_id].get('referred_by')
             if ref_id and not data[user_id].get('rewarded', False):
                 if ref_id in data:
                     data[ref_id]['points'] += 1
                     data[user_id]['rewarded'] = True
                     save_json(DB_FILE, data)
-                    bot.send_message(ref_id, "🎉 **New Referral!**\nSomeone joined using your link. +1 Point.", parse_mode="Markdown")
+                    try:
+                        bot.send_message(ref_id, "🎉 **New Referral!**\nSomeone joined using your link. +1 Point.", parse_mode="Markdown")
+                    except:
+                        pass
             
-            bot.delete_message(call.message.chat.id, call.message.message_id)
+            try:
+                bot.delete_message(call.message.chat.id, call.message.message_id)
+            except:
+                pass
+            
             show_main_menu(call.message.chat.id, lang, user_id)
         else:
             bot.answer_callback_query(call.id, "❌ Join all channels first!", show_alert=True)
@@ -1099,6 +1121,7 @@ def callback_handler(call):
             return
         
         required_points = PRODUCT_PRICES[call.data]
+        pts = user_data.get('points', 0)
         
         if pts >= required_points:
             bot.answer_callback_query(call.id, s['success_select'], show_alert=True)
@@ -1114,7 +1137,10 @@ def callback_handler(call):
                     old_points = user_data.get('points', 0)
                     user_data['purchases'] += 1
                     user_data['spent_points'] += required_points
-                    user_data['points'] = max(0, old_points - required_points)  # التأكد من عدم أن تصبح سالبة
+                    user_data['points'] = max(0, old_points - required_points)
+                    
+                    data = check_data_integrity()
+                    data[user_id] = user_data
                     save_json(DB_FILE, data)
                     
                     # حفظ سجل الشراء
@@ -1135,13 +1161,23 @@ def callback_handler(call):
                     }
                     save_purchase_history(purchase_data)
                     
-                    bot.delete_message(user_id, loading_msg.message_id)
+                    try:
+                        bot.delete_message(user_id, loading_msg.message_id)
+                    except:
+                        pass
+                    
                     bot.send_message(user_id, s['account_delivered'].format(email=email, password=password), parse_mode="Markdown")
                 else:
-                    bot.delete_message(user_id, loading_msg.message_id)
+                    try:
+                        bot.delete_message(user_id, loading_msg.message_id)
+                    except:
+                        pass
                     bot.send_message(user_id, s['product_unavailable'], parse_mode="Markdown")
             else:
-                bot.delete_message(user_id, loading_msg.message_id)
+                try:
+                    bot.delete_message(user_id, loading_msg.message_id)
+                except:
+                    pass
                 bot.send_message(user_id, s['product_unavailable'], parse_mode="Markdown")
         else:
             msg = s['insufficient_points'].format(current=pts, required=required_points)
@@ -1157,6 +1193,7 @@ def callback_handler(call):
                 break
         
         if selected_country:
+            pts = user_data.get('points', 0)
             markup = types.InlineKeyboardMarkup()
             markup.add(
                 types.InlineKeyboardButton(
@@ -1175,13 +1212,17 @@ def callback_handler(call):
                 points=pts
             )
             
-            bot.edit_message_text(
-                chat_id=call.message.chat.id,
-                message_id=call.message.message_id,
-                text=confirm_text,
-                reply_markup=markup,
-                parse_mode="Markdown"
-            )
+            try:
+                bot.edit_message_text(
+                    chat_id=call.message.chat.id,
+                    message_id=call.message.message_id,
+                    text=confirm_text,
+                    reply_markup=markup,
+                    parse_mode="Markdown"
+                )
+            except Exception as e:
+                print(f"❌ خطأ في تعديل الرسالة: {e}")
+                bot.send_message(user_id, confirm_text, reply_markup=markup, parse_mode="Markdown")
     
     elif call.data.startswith('confirm_telegram_'):
         country_code = call.data.replace('confirm_telegram_', '')
@@ -1193,6 +1234,7 @@ def callback_handler(call):
                 break
         
         if selected_country:
+            pts = user_data.get('points', 0)
             if pts >= PRODUCT_PRICES['buy_telegram']:
                 processing_msg = bot.send_message(
                     user_id,
@@ -1229,6 +1271,7 @@ def callback_handler(call):
                 user_data['spent_points'] += PRODUCT_PRICES['buy_telegram']
                 user_data['purchases'] += 1
                 
+                data = check_data_integrity()
                 data[user_id] = user_data
                 save_json(DB_FILE, data)
                 
@@ -1244,7 +1287,10 @@ def callback_handler(call):
                 }
                 save_purchase_history(purchase_data)
                 
-                bot.delete_message(user_id, processing_msg.message_id)
+                try:
+                    bot.delete_message(user_id, processing_msg.message_id)
+                except:
+                    pass
                 
                 if lang == 'ar':
                     order_text = f"""🎉 <b>تم إنشاء طلبك بنجاح!</b>
@@ -1304,13 +1350,17 @@ def callback_handler(call):
         markup.add(types.InlineKeyboardButton(s['btn_icloud'], callback_data='buy_icloud'))
         markup.add(types.InlineKeyboardButton(s['btn_telegram'], callback_data='buy_telegram'))
         
-        bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text=store_text,
-            reply_markup=markup,
-            parse_mode="Markdown"
-        )
+        try:
+            bot.edit_message_text(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                text=store_text,
+                reply_markup=markup,
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            print(f"❌ خطأ في تعديل الرسالة: {e}")
+            bot.send_message(user_id, store_text, reply_markup=markup, parse_mode="Markdown")
     
     elif call.data == 'check_telegram_order':
         msg = bot.send_message(
@@ -1323,6 +1373,8 @@ def callback_handler(call):
     elif call.data.startswith('purchase_icloud_'):
         index = int(call.data.split('_')[2])
         accounts = load_json(ICLOUD_FILE, [])
+        pts = user_data.get('points', 0)
+        
         if 0 <= index < len(accounts) and pts >= PRODUCT_PRICES['buy_icloud']:
             acc = accounts[index]
             if acc['remaining_users'] > 0 and str(user_id) not in acc['users_received']:
@@ -1340,6 +1392,9 @@ def callback_handler(call):
                 user_data['purchases'] += 1
                 user_data['spent_points'] += PRODUCT_PRICES['buy_icloud']
                 user_data['points'] = max(0, old_points - PRODUCT_PRICES['buy_icloud'])
+                
+                data = check_data_integrity()
+                data[user_id] = user_data
                 save_json(DB_FILE, data)
                 
                 try:
@@ -1359,7 +1414,11 @@ def callback_handler(call):
                 }
                 save_purchase_history(purchase_data)
                 
-                bot.delete_message(user_id, loading_msg.message_id)
+                try:
+                    bot.delete_message(user_id, loading_msg.message_id)
+                except:
+                    pass
+                
                 bot.send_message(user_id, s['account_delivered'].format(email=email, password=password), parse_mode="Markdown")
                 
                 try:
@@ -1374,8 +1433,8 @@ def callback_handler(call):
                         reply_markup=markup,
                         parse_mode="Markdown"
                     )
-                except:
-                    pass
+                except Exception as e:
+                    print(f"❌ خطأ في تعديل صورة iCloud: {e}")
             else:
                 bot.answer_callback_query(call.id, s['product_unavailable'], show_alert=True)
         else:
@@ -1769,7 +1828,8 @@ def process_order_check(message):
     order_code = message.text.strip()
     
     data = load_json(DB_FILE, {})
-    lang = data[user_id].get('lang', 'ar') or 'ar'
+    user_data = ensure_user_data(user_id)
+    lang = user_data.get('lang', 'ar') or 'ar'
     s = STRINGS[lang]
     
     order = get_telegram_order(order_code)
@@ -1825,7 +1885,7 @@ print("📊 Purchase history system activated")
 if __name__ == "__main__":
     try:
         print("🔧 Starting infinity polling...")
-        bot.infinity_polling(timeout=60, long_polling_timeout=20)
+        bot.infinity_polling(timeout=60, long_polling_timeout=20, skip_pending=True)
     except Exception as e:
         print(f"❌ Error: {e}")
         print("🔄 Restarting in 10 seconds...")
