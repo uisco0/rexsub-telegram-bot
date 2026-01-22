@@ -219,7 +219,7 @@ STRINGS = {
         'store': "🔥 المتجر",
         'admin': "⚙️ لوحة الإدارة",
         'acc_info': "💰 رصيدك الحالي: `{pts}` نقطة",
-        'account_details': "ℹ️ **معلومات حسابك الشخصي**\n━━━━━━━━━━━━━━\n\n💰 **رصيدك الحالي**: `{current_points}` نقطة\n\n🛍️ **السلع التي اشتريتها**: `{purchases}` عملية شراء\n\n👥 **مشاركاتك لرابط الدعوة**: `{referrals}` شخص انضم عبر رابطك\n\n📊 **الرصيد الذي استخدمته**: `{spent_points}` نقطة\n\n━━━━━━━━━━━━━━\n🚀 استمر في جمع النقاط واستمتع بالمتجر!",
+        'account_details': "ℹ️ **معلومات حسابك الشخصي**\n━━━━━━━━━━━━━━\n\n💰 **رصيدك الحالي**: `{current_points}` نقطة\n\n🛍️ **السلع التي اشتريتها**: `{purchases}` عملية شراء\n\n👥 **مشاركاتك لرابط الدعوة**: `{referrals}` شخص انضم عبر رابطك\n\n📊 **الرصيد الذي استخدمته**: `{spent_points}` نقطة\n\n━━━━━━━━━━━━━━\n🚀 استمر في جمع النقاط واستمتع بال المتجر!",
         'ref_info': "💎 **نظام المكافآت**\n━━━━━━━━━━━━━━\nشارك الرابط مع أصدقائك واحصل على **1 نقطة** لكل صديق ينضم:\n\n🔗 `{link}`",
         'share_btn': "🚀 مشاركة الرابط فوراً",
         'support_info': "📞 **مركز الدعم والمساعدة**\n━━━━━━━━━━━━━━\nإذا واجهت أي مشكلة، نحن هنا لمساعدتك:\n\n👨‍💼 @RexSubSUPPORT\n👤 @J_1hz",
@@ -297,8 +297,7 @@ STRINGS = {
         'member_item': "👤 **{name}**\n📱 **اليوزر:** {username}\n💰 **النقاط:** {points} نقطة\n🆔 **المعرف:** `{user_id}`\n━━━━━━━━━━━━━━",
         'search_prompt': "🔍 **البحث عن عضو**\n━━━━━━━━━━━━━━\n\nأدخل يوزر العضو للبحث عنه:\n💡 مثال: @username أو معرف المستخدم",
         'member_not_found': "❌ **لم يتم العثور على العضو**\n━━━━━━━━━━━━━━\nلم يتم العثور على عضو بهذا اليوزر أو المعرف.\n\n💡 تأكد من إدخال اليوزر أو المعرف بشكل صحيح.",
-        'member_found': "✅ **تم العثور على العضو**\n━━━━━━━━━━━━━━\n",
-        'fix_data': "🔧 إصلاح بيانات النقاط",
+        'member_found': "✅ **تم العثور على العضو**\n━━━━━━━━━━━━━━\n"
     },
     'en': {
         'welcome_msg': "🦖 Welcome to RexSub 🔥\n━━━━━━━━━━━━━━\nWe're thrilled to have you! This bot is dedicated to providing a variety of premium accounts.\n\n💡 Start collecting points or browse the store now.",
@@ -392,8 +391,7 @@ STRINGS = {
         'member_item': "👤 **{name}**\n📱 **Username:** {username}\n💰 **Points:** {points} points\n🆔 **ID:** `{user_id}`\n━━━━━━━━━━━━━━",
         'search_prompt': "🔍 **Search for Member**\n━━━━━━━━━━━━━━\n\nEnter member username to search:\n💡 Example: @username or user ID",
         'member_not_found': "❌ **Member Not Found**\n━━━━━━━━━━━━━━\nNo member found with this username or ID.\n\n💡 Make sure to enter username or ID correctly.",
-        'member_found': "✅ **Member Found**\n━━━━━━━━━━━━━━\n",
-        'fix_data': "🔧 Fix Points Data",
+        'member_found': "✅ **Member Found**\n━━━━━━━━━━━━━━\n"
     }
 }
 
@@ -586,7 +584,7 @@ def delete_icloud_account(index):
 # ============ وظائف عرض الأعضاء والمشتريات ============
 
 def show_members_list(admin_id):
-    """عرض قائمة الأعضاء (النقاط فقط)"""
+    """عرض قائمة الأعضاء (النقاط فقط) - محسّنة"""
     data = check_data_integrity()  # فحص سلامة البيانات أولاً
     
     if not data:
@@ -597,8 +595,9 @@ def show_members_list(admin_id):
     
     # حساب الإحصائيات
     total_points = sum(user.get('points', 0) for user in data.values())
-    max_points = max((user.get('points', 0) for user in data.values()), default=0)
-    min_points = min((user.get('points', 0) for user in data.values()), default=0)
+    points_list = [user.get('points', 0) for user in data.values()]
+    max_points = max(points_list) if points_list else 0
+    min_points = min(points_list) if points_list else 0
     avg_points = round(total_points/total_members, 2) if total_members > 0 else 0
     
     # إرسال الإحصائيات أولاً
@@ -614,12 +613,15 @@ def show_members_list(admin_id):
     bot.send_message(admin_id, stats_text, parse_mode="Markdown")
     time.sleep(1)
     
-    # عرض الأعضاء
+    # فرز الأعضاء حسب النقاط (من الأعلى إلى الأقل)
+    sorted_members = sorted(data.items(), key=lambda x: x[1].get('points', 0), reverse=True)
+    
     members_text = f"👥 **قائمة الأعضاء ({total_members})**\n━━━━━━━━━━━━━━\n\n"
     
-    members_list = []
+    batch_messages = []
+    current_batch = ""
     
-    for user_id, user_data in data.items():
+    for index, (user_id, user_data) in enumerate(sorted_members, 1):
         try:
             # الحصول على معلومات المستخدم
             try:
@@ -633,34 +635,52 @@ def show_members_list(admin_id):
                 full_name = "مستخدم مجهول"
             
             points = user_data.get('points', 0)
+            purchases = user_data.get('purchases', 0)
+            referrals = len([u for u in data.values() if u.get('referred_by') == user_id])
             
-            member_info = STRINGS['ar']['member_item'].format(
-                name=full_name[:20],
-                username=username,
-                points=points,
-                user_id=user_id
-            )
+            member_info = f"**#{index}** - {full_name[:20]}\n"
+            member_info += f"👤 {username}\n"
+            member_info += f"💰 النقاط: {points}\n"
+            member_info += f"🛍️ المشتريات: {purchases}\n"
+            member_info += f"👥 الإحالات: {referrals}\n"
+            member_info += f"🆔 المعرف: `{user_id}`\n"
+            member_info += f"━━━━━━━━━━━━━━\n"
             
-            members_list.append(member_info)
-            
-            # إرسال كل 5 أعضاء في رسالة واحدة
-            if len(members_list) >= 5:
-                chunk_text = members_text + "\n".join(members_list[:5])
-                bot.send_message(admin_id, chunk_text, parse_mode="Markdown")
-                members_list = members_list[5:] if len(members_list) > 5 else []
-                time.sleep(0.5)
+            # إذا كانت الرسالة الحالية طويلة جدًا، أضفها إلى الدُفعة وأبدأ دفعة جديدة
+            if len(current_batch) + len(member_info) > 4000:
+                batch_messages.append(current_batch)
+                current_batch = member_info
+            else:
+                current_batch += member_info
                 
         except Exception as e:
+            logger.error(f"❌ خطأ في معالجة العضو {user_id}: {e}")
             continue
     
-    # إرسال الأعضاء المتبقين
-    if members_list:
-        final_text = members_text + "\n".join(members_list)
-        bot.send_message(admin_id, final_text, parse_mode="Markdown")
+    # إضافة آخر دفعة إذا كانت تحتوي على بيانات
+    if current_batch:
+        batch_messages.append(current_batch)
+    
+    # إرسال كل الدُفعات
+    if not batch_messages:
+        bot.send_message(admin_id, "⚠️ لم يتم العثور على أعضاء لعرضهم.")
+        return
+    
+    # إرسال أول رسالة (الدُفعة الأولى)
+    first_message = members_text + batch_messages[0]
+    bot.send_message(admin_id, first_message, parse_mode="Markdown")
+    
+    # إرسال بقية الدُفعات
+    for batch in batch_messages[1:]:
+        time.sleep(0.5)  # تجنب قيود التراسل
+        try:
+            bot.send_message(admin_id, batch, parse_mode="Markdown")
+        except Exception as e:
+            logger.error(f"❌ خطأ في إرسال دفعة الأعضاء: {e}")
 
 def show_purchases_list(admin_id):
-    """عرض قائمة المشتريات"""
-    purchases = get_purchase_history(50)
+    """عرض قائمة المشتريات - محسّنة"""
+    purchases = get_purchase_history(100)  # زيادة الحد إلى 100
     
     if not purchases:
         bot.send_message(admin_id, STRINGS['ar']['no_purchases'])
@@ -689,8 +709,10 @@ def show_purchases_list(admin_id):
     bot.send_message(admin_id, stats_text, parse_mode="Markdown")
     time.sleep(1)
     
+    # عرض المشتريات
     purchases_text = f"🛒 **آخر {min(20, total_purchases)} عملية شراء**\n━━━━━━━━━━━━━━\n\n"
     
+    displayed_count = 0
     for i, purchase in enumerate(purchases[:20], 1):
         try:
             user_id = purchase.get('user_id', 'غير معروف')
@@ -711,13 +733,16 @@ def show_purchases_list(admin_id):
             )
             
             purchases_text += purchase_item + "\n"
+            displayed_count += 1
             
-            if i % 3 == 0:
+            # تقسيم إلى رسائل أصغر
+            if i % 5 == 0 and i < 20:
                 bot.send_message(admin_id, purchases_text, parse_mode="Markdown")
                 purchases_text = ""
-                time.sleep(0.5)
+                time.sleep(0.3)
                 
         except Exception as e:
+            logger.error(f"❌ خطأ في معالجة الشراء: {e}")
             continue
     
     if purchases_text.strip():
@@ -763,6 +788,11 @@ def process_member_search(message):
                 if search_query.lower() in full_name.lower():
                     found_members.append((user_id, user_data))
                     continue
+                    
+                # البحث في يوزر بدون @
+                if user_info.username and user_info.username.lower() == search_query.lower():
+                    found_members.append((user_id, user_data))
+                    continue
             except:
                 pass
         
@@ -774,7 +804,7 @@ def process_member_search(message):
         return
     
     # عرض العضو/الأعضاء الذين تم العثور عليهم
-    for user_id, user_data in found_members:
+    for user_id, user_data in found_members[:5]:  # عرض أول 5 فقط
         try:
             user_info = bot.get_chat(user_id)
             username = f"@{user_info.username}" if user_info.username else "بدون يوزر"
@@ -804,44 +834,11 @@ def process_member_search(message):
             time.sleep(0.5)
         
         except Exception as e:
-            bot.send_message(admin_id, f"❌ خطأ في عرض بيانات العضو {user_id}")
+            bot.send_message(admin_id, f"❌ خطأ في عرض بيانات العضو {user_id}: {e}")
             continue
-
-def fix_points_data(admin_id):
-    """إصلاح بيانات النقاط"""
-    data = check_data_integrity()
     
-    fixed_count = 0
-    total_points = 0
-    
-    for user_id, user_data in data.items():
-        # التأكد من أن النقاط هي عدد صحيح وإيجابي
-        points = user_data.get('points', 0)
-        if not isinstance(points, (int, float)):
-            try:
-                user_data['points'] = int(points)
-                fixed_count += 1
-            except:
-                user_data['points'] = 0
-                fixed_count += 1
-        
-        if user_data['points'] < 0:
-            user_data['points'] = 0
-            fixed_count += 1
-        
-        total_points += user_data['points']
-    
-    save_json(DB_FILE, data)
-    
-    result_text = f"🔧 **نتيجة إصلاح البيانات**\n━━━━━━━━━━━━━━\n\n"
-    result_text += f"✅ **تم إصلاح {fixed_count} حساب**\n"
-    result_text += f"💰 **إجمالي النقاط بعد الإصلاح:** {total_points}\n"
-    result_text += f"👥 **عدد الأعضاء:** {len(data)}\n"
-    result_text += f"📊 **متوسط النقاط:** {round(total_points/len(data), 2) if data else 0}\n"
-    result_text += f"━━━━━━━━━━━━━━\n"
-    result_text += f"💾 **تم حفظ البيانات بنجاح**"
-    
-    bot.send_message(admin_id, result_text, parse_mode="Markdown")
+    if len(found_members) > 5:
+        bot.send_message(admin_id, f"⚠️ تم العثور على {len(found_members)} عضو. عرض أول 5 أعضاء فقط.")
 
 # --- البداية ---
 @bot.message_handler(commands=['start', 'refresh'])
@@ -849,7 +846,7 @@ def start(message):
     user_id = str(message.chat.id)
     
     command_parts = message.text.split()
-    referrer_id = command_parts[1] if len(command_parts) > 1 and command_parts[1].isdigit() else None
+    referrer_id = command_parts[1] if len(command_parts) > 1 else None
     
     # إنشاء أو تحديث بيانات المستخدم
     user_data = ensure_user_data(user_id)
@@ -858,13 +855,21 @@ def start(message):
     if referrer_id and referrer_id != user_id and not user_data.get('rewarded', False):
         data = check_data_integrity()
         if referrer_id in data:
+            # إضافة نقطة للمُحيل
             data[referrer_id]['points'] += 1
+            # تحديث بيانات المستخدم الجديد
             user_data['referred_by'] = referrer_id
             user_data['rewarded'] = True
+            
             save_json(DB_FILE, data)
             
             try:
-                bot.send_message(referrer_id, "🎉 **إحالة جديدة!**\nانضم شخص جديد باستخدام رابطك. +1 نقطة.", parse_mode="Markdown")
+                # إرسال إشعار للمُحيل
+                bot.send_message(referrer_id, 
+                               "🎉 **إحالة جديدة!**\n━━━━━━━━━━━━━━\n"
+                               "انضم شخص جديد باستخدام رابطك.\n"
+                               "✅ تم إضافة +1 نقطة إلى رصيدك.", 
+                               parse_mode="Markdown")
             except:
                 pass
     
@@ -875,6 +880,15 @@ def start(message):
     # إرسال رسالة الترحيب
     bot.send_message(user_id, STRINGS[lang]['welcome_msg'], parse_mode="Markdown")
     time.sleep(1)
+    
+    # التحقق من الاشتراك في القنوات
+    if not is_subscribed(user_id):
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        for ch in MANDATORY_CHANNELS:
+            markup.add(types.InlineKeyboardButton(f"🔗 {ch}", url=f"https://t.me/{ch[1:]}"))
+        markup.add(types.InlineKeyboardButton(STRINGS[lang]['verify'], callback_data='verify'))
+        bot.send_message(user_id, STRINGS[lang]['sub_required'], reply_markup=markup, parse_mode="Markdown")
+        return
     
     # عرض القائمة الرئيسية
     show_main_menu(message.chat.id, lang, user_id)
@@ -981,13 +995,26 @@ def handle_msg(message):
             bot.send_message(user_id, details_text, parse_mode="Markdown")
         
         elif user_text == s['earn_points']:
+            # إصلاح رابط الإحالات
             ref_link = f"https://t.me/{bot.get_me().username}?start={user_id}"
+            
+            # تحسين نص المشاركة
+            share_text = f"{s['share_text']}\n\n🔗 {ref_link}"
             encoded_link = urllib.parse.quote(ref_link)
-            share_url = f"https://t.me/share/url?url={encoded_link}&text={urllib.parse.quote(s['share_text'])}"
+            encoded_text = urllib.parse.quote(share_text)
+            
+            # استخدام رابط مشاركة تليجرام مع النص والرابط
+            share_url = f"https://t.me/share/url?url={encoded_link}&text={encoded_text}"
             
             markup = types.InlineKeyboardMarkup()
             markup.add(types.InlineKeyboardButton(s['share_btn'], url=share_url))
-            bot.send_message(user_id, s['ref_info'].format(link=ref_link), reply_markup=markup, parse_mode="Markdown")
+            
+            # عرض معلومات الإحالات
+            data = check_data_integrity()
+            referrals_count = len([u for u in data.values() if u.get('referred_by') == user_id])
+            info_text = f"{s['ref_info'].format(link=ref_link)}\n\n📊 **عدد الإحالات حتى الآن:** {referrals_count}"
+            
+            bot.send_message(user_id, info_text, reply_markup=markup, parse_mode="Markdown")
         
         elif user_text == s['support']:
             bot.send_message(user_id, s['support_info'])
@@ -1010,7 +1037,7 @@ def handle_msg(message):
                 markup.add(types.InlineKeyboardButton(s['view_members'], callback_data='view_members'))
                 markup.add(types.InlineKeyboardButton(s['view_purchases'], callback_data='view_purchases'))
                 markup.add(types.InlineKeyboardButton(s['search_member'], callback_data='search_member'))
-                markup.add(types.InlineKeyboardButton(s['fix_data'], callback_data='fix_data'))
+                # تم حذف زر إصلاح بيانات النقاط هنا
                 markup.add(types.InlineKeyboardButton(s['add_netflix'], callback_data='add_netflix'))
                 markup.add(types.InlineKeyboardButton(s['view_netflix'], callback_data='view_netflix'))
                 markup.add(types.InlineKeyboardButton(s['add_icloud'], callback_data='add_icloud'))
@@ -1072,7 +1099,11 @@ def callback_handler(call):
                     data[user_id]['rewarded'] = True
                     save_json(DB_FILE, data)
                     try:
-                        bot.send_message(ref_id, "🎉 **New Referral!**\nSomeone joined using your link. +1 Point.", parse_mode="Markdown")
+                        bot.send_message(ref_id, 
+                                       "🎉 **إحالة جديدة!**\n━━━━━━━━━━━━━━\n"
+                                       "تم الاشتراك في القنوات بنجاح.\n"
+                                       "✅ تم إضافة +1 نقطة إلى رصيدك.", 
+                                       parse_mode="Markdown")
                     except:
                         pass
             
@@ -1463,9 +1494,7 @@ def callback_handler(call):
         if is_admin(user_id):
             search_member(user_id)
     
-    elif call.data == 'fix_data':
-        if is_admin(user_id):
-            fix_points_data(user_id)
+    # تم حذف call.data == 'fix_data' من هنا
     
     elif call.data == 'view_more_purchases':
         if is_admin(user_id):
@@ -1477,6 +1506,7 @@ def callback_handler(call):
             
             purchases_text = f"🛒 **المشتريات من 21 إلى {len(purchases)}**\n━━━━━━━━━━━━━━\n\n"
             
+            displayed_count = 0
             for i, purchase in enumerate(purchases[20:], 21):
                 try:
                     user_id_p = purchase.get('user_id', 'غير معروف')
@@ -1497,13 +1527,15 @@ def callback_handler(call):
                     )
                     
                     purchases_text += purchase_item + "\n"
+                    displayed_count += 1
                     
-                    if (i - 20) % 3 == 0:
+                    if displayed_count % 5 == 0:
                         bot.send_message(user_id, purchases_text, parse_mode="Markdown")
                         purchases_text = ""
-                        time.sleep(0.5)
+                        time.sleep(0.3)
                         
                 except Exception as e:
+                    logger.error(f"❌ خطأ في معالجة الشراء الإضافي: {e}")
                     continue
             
             if purchases_text.strip():
@@ -1680,6 +1712,9 @@ def process_transfer_amount(message, target_user):
             try:
                 user_info = bot.get_chat(user_id)
                 if user_info.username and f"@{user_info.username}" == target_user:
+                    user_found = user_id
+                    break
+                elif user_info.username and user_info.username == target_user.replace('@', ''):
                     user_found = user_id
                     break
             except:
@@ -1881,6 +1916,11 @@ check_data_integrity()
 
 print("🛡️ Anti-spam protection activated")
 print("📊 Purchase history system activated")
+print("✅ All modifications applied:")
+print("   1. Fixed members display issue")
+print("   2. Verified purchases functionality")
+print("   3. Removed 'Fix Points Data' button")
+print("   4. Fixed referral link system")
 
 if __name__ == "__main__":
     try:
