@@ -368,7 +368,7 @@ STRINGS = {
         'telegram_confirm_yes': "✅ Yes, Buy Number",
         'telegram_confirm_no': "❌ Cancel Order",
         'telegram_processing': "⚡️ Generating Telegram Number...\n━━━━━━━━━━━━━━\n⏳ Please wait a few moments",
-        'telegram_order_success': "🎉 **Your Order Created Successfully!**\n━━━━━━━━━━━━━━\n📋 **Order Information:**\n\n🆔 **Order Code:** `{order_id}`\n🌍 **Country:** {country}\n📅 **Date:** {date}\n⏰ **Time:** {time}\n━━━━━━━━━━━━━━\n\n📝 **Receiving Steps:**\n1. Send your order code to: @J_1hz\n2. Wait for reply within 24 hours\n3. After verifying your order, you will receive the number\n\n⚠️ **Important:** Save your order code well\n🔒 Code is non-repeatable and unique to you",
+        'telegram_order_success': "🎉 **Your Order Created Successfully!**\n━━━━━━━━━━━━━━\n📋 **Order Information:**\n\n🆔 **Order Code:** `{order_id}`\n🌍 **Country:** {country}\n📅 **Date:** {date}\n⏰ **الوقت:** {time}\n━━━━━━━━━━━━━━\n\n📝 **Receiving Steps:**\n1. Send your order code to: @J_1hz\n2. Wait for reply within 24 hours\n3. After verifying your order, you will receive the number\n\n⚠️ **Important:** Save your order code well\n🔒 Code is non-repeatable and unique to you",
         'telegram_copy_code': "📋 Copy Order Code",
         'telegram_check_order': "🔍 Check Telegram Number Order",
         'telegram_check_prompt': "🔢 **Check Number Order**\n━━━━━━━━━━━━━━\n📝 Please enter the order code you received:\n\n💡 Example: RS-123456-ABCDEFGH",
@@ -450,7 +450,7 @@ def is_admin(user_id):
             return False
         
         try:
-            user_info = bot.get_chat(user_id)
+            user_info = bot.get_chat(int(user_id))
             if user_info.username:
                 username = f"@{user_info.username}"
                 return username in admins
@@ -464,14 +464,28 @@ def is_admin(user_id):
         return False
 
 def is_subscribed(user_id):
+    """التحقق من اشتراك المستخدم في القنوات الإجبارية"""
     for ch in MANDATORY_CHANNELS:
         try:
-            status = bot.get_chat_member(ch.replace('@', ''), user_id).status
-            if status not in ['member', 'administrator', 'creator']: 
+            # إزالة @ من بداية اسم القناة إذا وجد
+            channel_username = ch.replace('@', '')
+            
+            # الحصول على معلومات العضوية
+            member = bot.get_chat_member(f"@{channel_username}" if not channel_username.startswith('@') else channel_username, int(user_id))
+            
+            # التحقق من حالة العضوية
+            if member.status in ['member', 'administrator', 'creator']:
+                logger.info(f"✅ المستخدم {user_id} مشترك في {ch}")
+                continue
+            else:
+                logger.info(f"❌ المستخدم {user_id} غير مشترك في {ch} - الحالة: {member.status}")
                 return False
+                
         except Exception as e:
             logger.error(f"❌ خطأ في التحقق من الاشتراك في {ch}: {e}")
             return False
+    
+    logger.info(f"✅ المستخدم {user_id} مشترك في جميع القنوات")
     return True
 
 # --- إضافة حقول جديدة للمستخدم ---
@@ -1675,7 +1689,7 @@ def callback_handler(call):
             
             bot.send_message(user_id, "☁️ اختر حساب لحذفه:", reply_markup=markup)
     
-    elif call.data.startswith('delete_icloud_'):
+    elif call.data startswith('delete_icloud_'):
         if is_admin(user_id):
             try:
                 index = int(call.data.replace('delete_icloud_', ''))
@@ -1999,12 +2013,12 @@ check_data_integrity()
 print("🛡️ Anti-spam protection activated")
 print("📊 Purchase history system activated")
 print("✅ All fixes applied:")
-print("   1. Fixed Netflix accounts display")
-print("   2. Fixed iCloud accounts display")
-print("   3. Fixed admin removal system")
-print("   4. Fixed referral system")
-print("   5. Fixed admin verification")
-print("   6. Fixed all JSON loading/saving issues")
+print("   1. Fixed subscription verification system")
+print("   2. Fixed Netflix accounts display")
+print("   3. Fixed iCloud accounts display")
+print("   4. Fixed admin removal system")
+print("   5. Fixed referral system")
+print("   6. Fixed admin verification")
 
 if __name__ == "__main__":
     try:
