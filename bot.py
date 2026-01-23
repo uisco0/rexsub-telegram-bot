@@ -21,6 +21,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # --- الإعدادات الأساسية ---
+# احصل على التوكن من متغير البيئة أو استخدم التوكن المباشر
 API_TOKEN = os.environ.get('API_TOKEN', '8145050607:AAHu04ckOXTooWhMssqVXRe3wuAs2PLEltA')
 bot = telebot.TeleBot(API_TOKEN)
 OWNER_ID = 1507470467
@@ -131,7 +132,7 @@ def save_purchase_history(purchase_data):
     history.append(purchase_data)
     save_json(PURCHASES_HISTORY_FILE, history)
 
-def get_purchase_history(limit=100):
+def get_purchase_history(limit=50):
     """الحصول على سجل المشتريات"""
     history = load_json(PURCHASES_HISTORY_FILE, [])
     if not isinstance(history, list):
@@ -164,18 +165,18 @@ def check_data_integrity():
             if 'points' not in user_data:
                 user_data['points'] = 0
                 needs_fix = True
-                logger.info(f"⚠️ إصلاح نقاط المستخدم {user_id}: إضافة حقل النقاط")
+                print(f"⚠️ إصلاح نقاط المستخدم {user_id}: إضافة حقل النقاط")
             
             # التأكد من أن النقاط هي عدد صحيح
             if not isinstance(user_data['points'], (int, float)):
                 try:
                     user_data['points'] = int(user_data['points'])
                     needs_fix = True
-                    logger.info(f"⚠️ إصلاح نقاط المستخدم {user_id}: تحويل إلى عدد صحيح")
+                    print(f"⚠️ إصلاح نقاط المستخدم {user_id}: تحويل إلى عدد صحيح")
                 except:
                     user_data['points'] = 0
                     needs_fix = True
-                    logger.info(f"⚠️ إصلاح نقاط المستخدم {user_id}: تعيين إلى 0")
+                    print(f"⚠️ إصلاح نقاط المستخدم {user_id}: تعيين إلى 0")
             
             # التأكد من الحقول الأخرى
             default_fields = {
@@ -196,12 +197,12 @@ def check_data_integrity():
                     needs_fix = True
         
         if needs_fix:
-            logger.info(f"✅ إصلاح بيانات {len(data)} مستخدم")
+            print(f"✅ إصلاح بيانات {len(data)} مستخدم")
             save_json(DB_FILE, data)
         
         return data
     except Exception as e:
-        logger.error(f"❌ خطأ في فحص سلامة البيانات: {e}")
+        print(f"❌ خطأ في فحص سلامة البيانات: {e}")
         return {}
 
 # --- قاموس النصوص ---
@@ -296,7 +297,8 @@ STRINGS = {
         'member_item': "👤 **{name}**\n📱 **اليوزر:** {username}\n💰 **النقاط:** {points} نقطة\n🆔 **المعرف:** `{user_id}`\n━━━━━━━━━━━━━━",
         'search_prompt': "🔍 **البحث عن عضو**\n━━━━━━━━━━━━━━\n\nأدخل يوزر العضو للبحث عنه:\n💡 مثال: @username أو معرف المستخدم",
         'member_not_found': "❌ **لم يتم العثور على العضو**\n━━━━━━━━━━━━━━\nلم يتم العثور على عضو بهذا اليوزر أو المعرف.\n\n💡 تأكد من إدخال اليوزر أو المعرف بشكل صحيح.",
-        'member_found': "✅ **تم العثور على العضو**\n━━━━━━━━━━━━━━\n"
+        'member_found': "✅ **تم العثور على العضو**\n━━━━━━━━━━━━━━\n",
+        'fix_data': "🔧 إصلاح بيانات النقاط",
     },
     'en': {
         'welcome_msg': "🦖 Welcome to RexSub 🔥\n━━━━━━━━━━━━━━\nWe're thrilled to have you! This bot is dedicated to providing a variety of premium accounts.\n\n💡 Start collecting points or browse the store now.",
@@ -368,7 +370,7 @@ STRINGS = {
         'telegram_confirm_yes': "✅ Yes, Buy Number",
         'telegram_confirm_no': "❌ Cancel Order",
         'telegram_processing': "⚡️ Generating Telegram Number...\n━━━━━━━━━━━━━━\n⏳ Please wait a few moments",
-        'telegram_order_success': "🎉 **Your Order Created Successfully!**\n━━━━━━━━━━━━━━\n📋 **Order Information:**\n\n🆔 **Order Code:** `{order_id}`\n🌍 **Country:** {country}\n📅 **Date:** {date}\n⏰ **الوقت:** {time}\n━━━━━━━━━━━━━━\n\n📝 **Receiving Steps:**\n1. Send your order code to: @J_1hz\n2. Wait for reply within 24 hours\n3. After verifying your order, you will receive the number\n\n⚠️ **Important:** Save your order code well\n🔒 Code is non-repeatable and unique to you",
+        'telegram_order_success': "🎉 **Your Order Created Successfully!**\n━━━━━━━━━━━━━━\n📋 **Order Information:**\n\n🆔 **Order Code:** `{order_id}`\n🌍 **Country:** {country}\n📅 **Date:** {date}\n⏰ **Time:** {time}\n━━━━━━━━━━━━━━\n\n📝 **Receiving Steps:**\n1. Send your order code to: @J_1hz\n2. Wait for reply within 24 hours\n3. After verifying your order, you will receive the number\n\n⚠️ **Important:** Save your order code well\n🔒 Code is non-repeatable and unique to you",
         'telegram_copy_code': "📋 Copy Order Code",
         'telegram_check_order': "🔍 Check Telegram Number Order",
         'telegram_check_prompt': "🔢 **Check Number Order**\n━━━━━━━━━━━━━━\n📝 Please enter the order code you received:\n\n💡 Example: RS-123456-ABCDEFGH",
@@ -390,7 +392,8 @@ STRINGS = {
         'member_item': "👤 **{name}**\n📱 **Username:** {username}\n💰 **Points:** {points} points\n🆔 **ID:** `{user_id}`\n━━━━━━━━━━━━━━",
         'search_prompt': "🔍 **Search for Member**\n━━━━━━━━━━━━━━\n\nEnter member username to search:\n💡 Example: @username or user ID",
         'member_not_found': "❌ **Member Not Found**\n━━━━━━━━━━━━━━\nNo member found with this username or ID.\n\n💡 Make sure to enter username or ID correctly.",
-        'member_found': "✅ **Member Found**\n━━━━━━━━━━━━━━\n"
+        'member_found': "✅ **Member Found**\n━━━━━━━━━━━━━━\n",
+        'fix_data': "🔧 Fix Points Data",
     }
 }
 
@@ -403,24 +406,24 @@ def load_json(filename, default):
                 data = json.load(f)
                 # فحص ما إذا كان الملف فارغاً أو تالفاً
                 if data is None:
-                    logger.info(f"⚠️ ملف {filename} فارغ، إرجاع القيمة الافتراضية")
+                    print(f"⚠️ ملف {filename} فارغ، إرجاع القيمة الافتراضية")
                     return default
                 return data
         return default
     except json.JSONDecodeError as e:
-        logger.error(f"❌ خطأ في فك تشفير JSON في ملف {filename}: {e}")
+        print(f"❌ خطأ في فك تشفير JSON في ملف {filename}: {e}")
         # نسخ احتياطي للملف التالف
         try:
             if os.path.exists(filename):
                 backup_name = f"{filename}.backup_{int(time.time())}"
                 import shutil
                 shutil.copy2(filename, backup_name)
-                logger.info(f"📦 تم إنشاء نسخة احتياطية: {backup_name}")
+                print(f"📦 تم إنشاء نسخة احتياطية: {backup_name}")
         except:
             pass
         return default
     except Exception as e:
-        logger.error(f"❌ خطأ غير متوقع في تحميل {filename}: {e}")
+        print(f"❌ خطأ غير متوقع في تحميل {filename}: {e}")
         return default
 
 def save_json(filename, data):
@@ -431,71 +434,46 @@ def save_json(filename, data):
         
         with open(filename, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
-        logger.info(f"✅ تم حفظ البيانات في {filename}")
         return True
     except Exception as e:
-        logger.error(f"❌ خطأ في حفظ {filename}: {e}")
+        print(f"❌ خطأ في حفظ {filename}: {e}")
         return False
 
 def is_admin(user_id):
     try:
-        user_id_str = str(user_id)
-        owner_id_str = str(OWNER_ID)
-        
-        if user_id_str == owner_id_str:
-            return True
-        
+        if int(user_id) == OWNER_ID: return True
         admins = load_json(ADMINS_FILE, [])
         if not admins:
             return False
         
         try:
-            user_info = bot.get_chat(int(user_id))
-            if user_info.username:
-                username = f"@{user_info.username}"
-                return username in admins
-        except Exception as e:
-            logger.error(f"❌ خطأ في الحصول على معلومات المستخدم {user_id}: {e}")
+            user_info = bot.get_chat(user_id)
+            username = f"@{user_info.username}" if user_info.username else None
+            return (username in admins)
+        except:
             return False
-        
-        return False
     except Exception as e:
-        logger.error(f"❌ خطأ في التحقق من صلاحيات المدير {user_id}: {e}")
+        print(f"❌ خطأ في التحقق من صلاحيات المدير {user_id}: {e}")
         return False
 
 def is_subscribed(user_id):
-    """التحقق من اشتراك المستخدم في القنوات الإجبارية"""
     for ch in MANDATORY_CHANNELS:
         try:
-            # إزالة @ من بداية اسم القناة إذا وجد
-            channel_username = ch.replace('@', '')
-            
-            # الحصول على معلومات العضوية
-            member = bot.get_chat_member(f"@{channel_username}" if not channel_username.startswith('@') else channel_username, int(user_id))
-            
-            # التحقق من حالة العضوية
-            if member.status in ['member', 'administrator', 'creator']:
-                logger.info(f"✅ المستخدم {user_id} مشترك في {ch}")
-                continue
-            else:
-                logger.info(f"❌ المستخدم {user_id} غير مشترك في {ch} - الحالة: {member.status}")
+            status = bot.get_chat_member(ch, user_id).status
+            if status not in ['member', 'administrator', 'creator']: 
                 return False
-                
         except Exception as e:
-            logger.error(f"❌ خطأ في التحقق من الاشتراك في {ch}: {e}")
+            print(f"❌ خطأ في التحقق من الاشتراك في {ch}: {e}")
             return False
-    
-    logger.info(f"✅ المستخدم {user_id} مشترك في جميع القنوات")
     return True
 
 # --- إضافة حقول جديدة للمستخدم ---
 def ensure_user_data(user_id):
     """التأكد من وجود بيانات المستخدم وإنشاءها إذا لم تكن موجودة"""
     data = check_data_integrity()
-    user_id_str = str(user_id)
     
-    if user_id_str not in data:
-        data[user_id_str] = {
+    if user_id not in data:
+        data[user_id] = {
             'points': 0, 
             'lang': 'ar',  # تعيين اللغة الافتراضية
             'referred_by': None, 
@@ -508,7 +486,7 @@ def ensure_user_data(user_id):
             'last_seen': time.time()
         }
         save_json(DB_FILE, data)
-        logger.info(f"✅ تم إنشاء مستخدم جديد: {user_id_str}")
+        print(f"✅ تم إنشاء مستخدم جديد: {user_id}")
     else:
         # التأكد من وجود جميع الحقول
         default_fields = {
@@ -526,17 +504,17 @@ def ensure_user_data(user_id):
         
         needs_update = False
         for field, default_value in default_fields.items():
-            if field not in data[user_id_str]:
-                data[user_id_str][field] = default_value
+            if field not in data[user_id]:
+                data[user_id][field] = default_value
                 needs_update = True
         
         # تحديث وقت آخر ظهور
-        data[user_id_str]['last_seen'] = time.time()
+        data[user_id]['last_seen'] = time.time()
         
         if needs_update:
             save_json(DB_FILE, data)
     
-    return data[user_id_str]
+    return data[user_id]
 
 # --- وظائف حسابات نتفلكس ---
 def add_netflix_accounts(accounts_list, max_users):
@@ -549,7 +527,6 @@ def add_netflix_accounts(accounts_list, max_users):
             'users_received': []
         })
     save_json(NETFLIX_FILE, accounts)
-    logger.info(f"✅ تم إضافة {len(accounts_list)} حساب نتفلكس جديد")
 
 def get_netflix_account(user_id):
     accounts = load_json(NETFLIX_FILE, [])
@@ -569,7 +546,6 @@ def delete_netflix_account(index):
     if 0 <= index < len(accounts):
         del accounts[index]
         save_json(NETFLIX_FILE, accounts)
-        logger.info(f"✅ تم حذف حساب نتفلكس رقم {index}")
         return True
     return False
 
@@ -585,7 +561,6 @@ def add_icloud_account(account, photo_id, text, max_users):
         'users_received': []
     })
     save_json(ICLOUD_FILE, accounts)
-    logger.info(f"✅ تم إضافة حساب iCloud جديد: {account.split(':')[0]}")
 
 def get_icloud_account(user_id):
     accounts = load_json(ICLOUD_FILE, [])
@@ -603,17 +578,15 @@ def get_icloud_account(user_id):
 def delete_icloud_account(index):
     accounts = load_json(ICLOUD_FILE, [])
     if 0 <= index < len(accounts):
-        account_email = accounts[index]['account'].split(':')[0]
         del accounts[index]
         save_json(ICLOUD_FILE, accounts)
-        logger.info(f"✅ تم حذف حساب iCloud: {account_email}")
         return True
     return False
 
 # ============ وظائف عرض الأعضاء والمشتريات ============
 
 def show_members_list(admin_id):
-    """عرض قائمة الأعضاء (النقاط فقط) - محسّنة"""
+    """عرض قائمة الأعضاء (النقاط فقط)"""
     data = check_data_integrity()  # فحص سلامة البيانات أولاً
     
     if not data:
@@ -624,9 +597,8 @@ def show_members_list(admin_id):
     
     # حساب الإحصائيات
     total_points = sum(user.get('points', 0) for user in data.values())
-    points_list = [user.get('points', 0) for user in data.values()]
-    max_points = max(points_list) if points_list else 0
-    min_points = min(points_list) if points_list else 0
+    max_points = max((user.get('points', 0) for user in data.values()), default=0)
+    min_points = min((user.get('points', 0) for user in data.values()), default=0)
     avg_points = round(total_points/total_members, 2) if total_members > 0 else 0
     
     # إرسال الإحصائيات أولاً
@@ -642,19 +614,16 @@ def show_members_list(admin_id):
     bot.send_message(admin_id, stats_text, parse_mode="Markdown")
     time.sleep(1)
     
-    # فرز الأعضاء حسب النقاط (من الأعلى إلى الأقل)
-    sorted_members = sorted(data.items(), key=lambda x: x[1].get('points', 0), reverse=True)
-    
+    # عرض الأعضاء
     members_text = f"👥 **قائمة الأعضاء ({total_members})**\n━━━━━━━━━━━━━━\n\n"
     
-    batch_messages = []
-    current_batch = ""
+    members_list = []
     
-    for index, (user_id, user_data) in enumerate(sorted_members, 1):
+    for user_id, user_data in data.items():
         try:
             # الحصول على معلومات المستخدم
             try:
-                user_info = bot.get_chat(int(user_id))
+                user_info = bot.get_chat(user_id)
                 username = f"@{user_info.username}" if user_info.username else "بدون يوزر"
                 first_name = user_info.first_name or "غير معروف"
                 last_name = f" {user_info.last_name}" if user_info.last_name else ""
@@ -664,52 +633,34 @@ def show_members_list(admin_id):
                 full_name = "مستخدم مجهول"
             
             points = user_data.get('points', 0)
-            purchases = user_data.get('purchases', 0)
-            referrals = len([u for u in data.values() if u.get('referred_by') == user_id])
             
-            member_info = f"**#{index}** - {full_name[:20]}\n"
-            member_info += f"👤 {username}\n"
-            member_info += f"💰 النقاط: {points}\n"
-            member_info += f"🛍️ المشتريات: {purchases}\n"
-            member_info += f"👥 الإحالات: {referrals}\n"
-            member_info += f"🆔 المعرف: `{user_id}`\n"
-            member_info += f"━━━━━━━━━━━━━━\n"
+            member_info = STRINGS['ar']['member_item'].format(
+                name=full_name[:20],
+                username=username,
+                points=points,
+                user_id=user_id
+            )
             
-            # إذا كانت الرسالة الحالية طويلة جدًا، أضفها إلى الدُفعة وأبدأ دفعة جديدة
-            if len(current_batch) + len(member_info) > 4000:
-                batch_messages.append(current_batch)
-                current_batch = member_info
-            else:
-                current_batch += member_info
+            members_list.append(member_info)
+            
+            # إرسال كل 5 أعضاء في رسالة واحدة
+            if len(members_list) >= 5:
+                chunk_text = members_text + "\n".join(members_list[:5])
+                bot.send_message(admin_id, chunk_text, parse_mode="Markdown")
+                members_list = members_list[5:] if len(members_list) > 5 else []
+                time.sleep(0.5)
                 
         except Exception as e:
-            logger.error(f"❌ خطأ في معالجة العضو {user_id}: {e}")
             continue
     
-    # إضافة آخر دفعة إذا كانت تحتوي على بيانات
-    if current_batch:
-        batch_messages.append(current_batch)
-    
-    # إرسال كل الدُفعات
-    if not batch_messages:
-        bot.send_message(admin_id, "⚠️ لم يتم العثور على أعضاء لعرضهم.")
-        return
-    
-    # إرسال أول رسالة (الدُفعة الأولى)
-    first_message = members_text + batch_messages[0]
-    bot.send_message(admin_id, first_message, parse_mode="Markdown")
-    
-    # إرسال بقية الدُفعات
-    for batch in batch_messages[1:]:
-        time.sleep(0.5)  # تجنب قيود التراسل
-        try:
-            bot.send_message(admin_id, batch, parse_mode="Markdown")
-        except Exception as e:
-            logger.error(f"❌ خطأ في إرسال دفعة الأعضاء: {e}")
+    # إرسال الأعضاء المتبقين
+    if members_list:
+        final_text = members_text + "\n".join(members_list)
+        bot.send_message(admin_id, final_text, parse_mode="Markdown")
 
 def show_purchases_list(admin_id):
-    """عرض قائمة المشتريات - محسّنة"""
-    purchases = get_purchase_history(100)  # زيادة الحد إلى 100
+    """عرض قائمة المشتريات"""
+    purchases = get_purchase_history(50)
     
     if not purchases:
         bot.send_message(admin_id, STRINGS['ar']['no_purchases'])
@@ -738,10 +689,8 @@ def show_purchases_list(admin_id):
     bot.send_message(admin_id, stats_text, parse_mode="Markdown")
     time.sleep(1)
     
-    # عرض المشتريات
     purchases_text = f"🛒 **آخر {min(20, total_purchases)} عملية شراء**\n━━━━━━━━━━━━━━\n\n"
     
-    displayed_count = 0
     for i, purchase in enumerate(purchases[:20], 1):
         try:
             user_id = purchase.get('user_id', 'غير معروف')
@@ -762,16 +711,13 @@ def show_purchases_list(admin_id):
             )
             
             purchases_text += purchase_item + "\n"
-            displayed_count += 1
             
-            # تقسيم إلى رسائل أصغر
-            if i % 5 == 0 and i < 20:
+            if i % 3 == 0:
                 bot.send_message(admin_id, purchases_text, parse_mode="Markdown")
                 purchases_text = ""
-                time.sleep(0.3)
+                time.sleep(0.5)
                 
         except Exception as e:
-            logger.error(f"❌ خطأ في معالجة الشراء: {e}")
             continue
     
     if purchases_text.strip():
@@ -807,7 +753,7 @@ def process_member_search(message):
             
             # البحث باليوزر
             try:
-                user_info = bot.get_chat(int(user_id))
+                user_info = bot.get_chat(user_id)
                 if user_info.username and f"@{user_info.username}".lower() == search_query.lower():
                     found_members.append((user_id, user_data))
                     continue
@@ -815,11 +761,6 @@ def process_member_search(message):
                 # البحث بالاسم
                 full_name = f"{user_info.first_name or ''} {user_info.last_name or ''}".strip()
                 if search_query.lower() in full_name.lower():
-                    found_members.append((user_id, user_data))
-                    continue
-                    
-                # البحث في يوزر بدون @
-                if user_info.username and user_info.username.lower() == search_query.lower():
                     found_members.append((user_id, user_data))
                     continue
             except:
@@ -833,9 +774,9 @@ def process_member_search(message):
         return
     
     # عرض العضو/الأعضاء الذين تم العثور عليهم
-    for user_id, user_data in found_members[:5]:  # عرض أول 5 فقط
+    for user_id, user_data in found_members:
         try:
-            user_info = bot.get_chat(int(user_id))
+            user_info = bot.get_chat(user_id)
             username = f"@{user_info.username}" if user_info.username else "بدون يوزر"
             first_name = user_info.first_name or "غير معروف"
             last_name = f" {user_info.last_name}" if user_info.last_name else ""
@@ -863,11 +804,44 @@ def process_member_search(message):
             time.sleep(0.5)
         
         except Exception as e:
-            bot.send_message(admin_id, f"❌ خطأ في عرض بيانات العضو {user_id}: {e}")
+            bot.send_message(admin_id, f"❌ خطأ في عرض بيانات العضو {user_id}")
             continue
+
+def fix_points_data(admin_id):
+    """إصلاح بيانات النقاط"""
+    data = check_data_integrity()
     
-    if len(found_members) > 5:
-        bot.send_message(admin_id, f"⚠️ تم العثور على {len(found_members)} عضو. عرض أول 5 أعضاء فقط.")
+    fixed_count = 0
+    total_points = 0
+    
+    for user_id, user_data in data.items():
+        # التأكد من أن النقاط هي عدد صحيح وإيجابي
+        points = user_data.get('points', 0)
+        if not isinstance(points, (int, float)):
+            try:
+                user_data['points'] = int(points)
+                fixed_count += 1
+            except:
+                user_data['points'] = 0
+                fixed_count += 1
+        
+        if user_data['points'] < 0:
+            user_data['points'] = 0
+            fixed_count += 1
+        
+        total_points += user_data['points']
+    
+    save_json(DB_FILE, data)
+    
+    result_text = f"🔧 **نتيجة إصلاح البيانات**\n━━━━━━━━━━━━━━\n\n"
+    result_text += f"✅ **تم إصلاح {fixed_count} حساب**\n"
+    result_text += f"💰 **إجمالي النقاط بعد الإصلاح:** {total_points}\n"
+    result_text += f"👥 **عدد الأعضاء:** {len(data)}\n"
+    result_text += f"📊 **متوسط النقاط:** {round(total_points/len(data), 2) if data else 0}\n"
+    result_text += f"━━━━━━━━━━━━━━\n"
+    result_text += f"💾 **تم حفظ البيانات بنجاح**"
+    
+    bot.send_message(admin_id, result_text, parse_mode="Markdown")
 
 # --- البداية ---
 @bot.message_handler(commands=['start', 'refresh'])
@@ -875,7 +849,7 @@ def start(message):
     user_id = str(message.chat.id)
     
     command_parts = message.text.split()
-    referrer_id = command_parts[1] if len(command_parts) > 1 else None
+    referrer_id = command_parts[1] if len(command_parts) > 1 and command_parts[1].isdigit() else None
     
     # إنشاء أو تحديث بيانات المستخدم
     user_data = ensure_user_data(user_id)
@@ -884,23 +858,15 @@ def start(message):
     if referrer_id and referrer_id != user_id and not user_data.get('rewarded', False):
         data = check_data_integrity()
         if referrer_id in data:
-            # إضافة نقطة للمُحيل
             data[referrer_id]['points'] += 1
-            # تحديث بيانات المستخدم الجديد
             user_data['referred_by'] = referrer_id
             user_data['rewarded'] = True
-            
             save_json(DB_FILE, data)
             
             try:
-                # إرسال إشعار للمُحيل
-                bot.send_message(int(referrer_id), 
-                               "🎉 **إحالة جديدة!**\n━━━━━━━━━━━━━━\n"
-                               "انضم شخص جديد باستخدام رابطك.\n"
-                               "✅ تم إضافة +1 نقطة إلى رصيدك.", 
-                               parse_mode="Markdown")
-            except Exception as e:
-                logger.error(f"❌ خطأ في إرسال إشعار الإحالة: {e}")
+                bot.send_message(referrer_id, "🎉 **إحالة جديدة!**\nانضم شخص جديد باستخدام رابطك. +1 نقطة.", parse_mode="Markdown")
+            except:
+                pass
     
     # إعادة تعيين البيانات
     user_data = ensure_user_data(user_id)
@@ -909,15 +875,6 @@ def start(message):
     # إرسال رسالة الترحيب
     bot.send_message(user_id, STRINGS[lang]['welcome_msg'], parse_mode="Markdown")
     time.sleep(1)
-    
-    # التحقق من الاشتراك في القنوات
-    if not is_subscribed(user_id):
-        markup = types.InlineKeyboardMarkup(row_width=1)
-        for ch in MANDATORY_CHANNELS:
-            markup.add(types.InlineKeyboardButton(f"🔗 {ch}", url=f"https://t.me/{ch[1:]}"))
-        markup.add(types.InlineKeyboardButton(STRINGS[lang]['verify'], callback_data='verify'))
-        bot.send_message(user_id, STRINGS[lang]['sub_required'], reply_markup=markup, parse_mode="Markdown")
-        return
     
     # عرض القائمة الرئيسية
     show_main_menu(message.chat.id, lang, user_id)
@@ -1024,26 +981,13 @@ def handle_msg(message):
             bot.send_message(user_id, details_text, parse_mode="Markdown")
         
         elif user_text == s['earn_points']:
-            # إصلاح رابط الإحالات
             ref_link = f"https://t.me/{bot.get_me().username}?start={user_id}"
-            
-            # تحسين نص المشاركة
-            share_text = f"{s['share_text']}\n\n🔗 {ref_link}"
             encoded_link = urllib.parse.quote(ref_link)
-            encoded_text = urllib.parse.quote(share_text)
-            
-            # استخدام رابط مشاركة تليجرام مع النص والرابط
-            share_url = f"https://t.me/share/url?url={encoded_link}&text={encoded_text}"
+            share_url = f"https://t.me/share/url?url={encoded_link}&text={urllib.parse.quote(s['share_text'])}"
             
             markup = types.InlineKeyboardMarkup()
             markup.add(types.InlineKeyboardButton(s['share_btn'], url=share_url))
-            
-            # عرض معلومات الإحالات
-            data = check_data_integrity()
-            referrals_count = len([u for u in data.values() if u.get('referred_by') == user_id])
-            info_text = f"{s['ref_info'].format(link=ref_link)}\n\n📊 **عدد الإحالات حتى الآن:** {referrals_count}"
-            
-            bot.send_message(user_id, info_text, reply_markup=markup, parse_mode="Markdown")
+            bot.send_message(user_id, s['ref_info'].format(link=ref_link), reply_markup=markup, parse_mode="Markdown")
         
         elif user_text == s['support']:
             bot.send_message(user_id, s['support_info'])
@@ -1066,6 +1010,7 @@ def handle_msg(message):
                 markup.add(types.InlineKeyboardButton(s['view_members'], callback_data='view_members'))
                 markup.add(types.InlineKeyboardButton(s['view_purchases'], callback_data='view_purchases'))
                 markup.add(types.InlineKeyboardButton(s['search_member'], callback_data='search_member'))
+                markup.add(types.InlineKeyboardButton(s['fix_data'], callback_data='fix_data'))
                 markup.add(types.InlineKeyboardButton(s['add_netflix'], callback_data='add_netflix'))
                 markup.add(types.InlineKeyboardButton(s['view_netflix'], callback_data='view_netflix'))
                 markup.add(types.InlineKeyboardButton(s['add_icloud'], callback_data='add_icloud'))
@@ -1127,13 +1072,9 @@ def callback_handler(call):
                     data[user_id]['rewarded'] = True
                     save_json(DB_FILE, data)
                     try:
-                        bot.send_message(int(ref_id), 
-                                       "🎉 **إحالة جديدة!**\n━━━━━━━━━━━━━━\n"
-                                       "تم الاشتراك في القنوات بنجاح.\n"
-                                       "✅ تم إضافة +1 نقطة إلى رصيدك.", 
-                                       parse_mode="Markdown")
-                    except Exception as e:
-                        logger.error(f"❌ خطأ في إرسال إشعار الإحالة: {e}")
+                        bot.send_message(ref_id, "🎉 **New Referral!**\nSomeone joined using your link. +1 Point.", parse_mode="Markdown")
+                    except:
+                        pass
             
             try:
                 bot.delete_message(call.message.chat.id, call.message.message_id)
@@ -1142,8 +1083,8 @@ def callback_handler(call):
             
             show_main_menu(call.message.chat.id, lang, user_id)
         else:
-            bot.answer_callback_query(call.id, "❌ الرجاء الاشتراك في جميع القنوات أولاً!", show_alert=True)
-    
+            bot.answer_callback_query(call.id, "❌ Join all channels first!", show_alert=True)
+        
     elif call.data in ['buy_netflix', 'buy_icloud', 'buy_telegram']:
         if call.data == 'buy_icloud':
             accounts = load_json(ICLOUD_FILE, [])
@@ -1190,11 +1131,7 @@ def callback_handler(call):
             if call.data == 'buy_netflix':
                 account = get_netflix_account(user_id)
                 if account:
-                    try:
-                        email, password = account.split(':')
-                    except:
-                        bot.send_message(user_id, "❌ خطأ في تنسيق الحساب. الرجاء التواصل مع الدعم.")
-                        return
+                    email, password = account.split(':')
                     
                     # حفظ النقاط قبل التعديل
                     old_points = user_data.get('points', 0)
@@ -1208,7 +1145,7 @@ def callback_handler(call):
                     
                     # حفظ سجل الشراء
                     try:
-                        user_info = bot.get_chat(int(user_id))
+                        user_info = bot.get_chat(user_id)
                         username = f"@{user_info.username}" if user_info.username else "بدون يوزر"
                     except:
                         username = "غير معروف"
@@ -1284,7 +1221,7 @@ def callback_handler(call):
                     parse_mode="Markdown"
                 )
             except Exception as e:
-                logger.error(f"❌ خطأ في تعديل الرسالة: {e}")
+                print(f"❌ خطأ في تعديل الرسالة: {e}")
                 bot.send_message(user_id, confirm_text, reply_markup=markup, parse_mode="Markdown")
     
     elif call.data.startswith('confirm_telegram_'):
@@ -1310,7 +1247,7 @@ def callback_handler(call):
                 order_id = generate_order_id()
                 
                 try:
-                    user_info = bot.get_chat(int(user_id))
+                    user_info = bot.get_chat(user_id)
                     username = f"@{user_info.username}" if user_info.username else "بدون يوزر"
                 except:
                     username = "غير معروف"
@@ -1422,7 +1359,7 @@ def callback_handler(call):
                 parse_mode="Markdown"
             )
         except Exception as e:
-            logger.error(f"❌ خطأ في تعديل الرسالة: {e}")
+            print(f"❌ خطأ في تعديل الرسالة: {e}")
             bot.send_message(user_id, store_text, reply_markup=markup, parse_mode="Markdown")
     
     elif call.data == 'check_telegram_order':
@@ -1444,12 +1381,7 @@ def callback_handler(call):
                 bot.answer_callback_query(call.id, s['success_select'], show_alert=True)
                 loading_msg = bot.send_message(user_id, s['generating_msg'], parse_mode="Markdown")
                 time.sleep(3)
-                try:
-                    email, password = acc['account'].split(':')
-                except:
-                    bot.send_message(user_id, "❌ خطأ في تنسيق الحساب. الرجاء التواصل مع الدعم.")
-                    return
-                    
+                email, password = acc['account'].split(':')
                 acc['remaining_users'] -= 1
                 acc['users_received'].append(str(user_id))
                 if acc['remaining_users'] == 0:
@@ -1466,7 +1398,7 @@ def callback_handler(call):
                 save_json(DB_FILE, data)
                 
                 try:
-                    user_info = bot.get_chat(int(user_id))
+                    user_info = bot.get_chat(user_id)
                     username = f"@{user_info.username}" if user_info.username else "بدون يوزر"
                 except:
                     username = "غير معروف"
@@ -1502,7 +1434,7 @@ def callback_handler(call):
                         parse_mode="Markdown"
                     )
                 except Exception as e:
-                    logger.error(f"❌ خطأ في تعديل صورة iCloud: {e}")
+                    print(f"❌ خطأ في تعديل صورة iCloud: {e}")
             else:
                 bot.answer_callback_query(call.id, s['product_unavailable'], show_alert=True)
         else:
@@ -1531,6 +1463,10 @@ def callback_handler(call):
         if is_admin(user_id):
             search_member(user_id)
     
+    elif call.data == 'fix_data':
+        if is_admin(user_id):
+            fix_points_data(user_id)
+    
     elif call.data == 'view_more_purchases':
         if is_admin(user_id):
             purchases = get_purchase_history(100)
@@ -1541,7 +1477,6 @@ def callback_handler(call):
             
             purchases_text = f"🛒 **المشتريات من 21 إلى {len(purchases)}**\n━━━━━━━━━━━━━━\n\n"
             
-            displayed_count = 0
             for i, purchase in enumerate(purchases[20:], 21):
                 try:
                     user_id_p = purchase.get('user_id', 'غير معروف')
@@ -1562,15 +1497,13 @@ def callback_handler(call):
                     )
                     
                     purchases_text += purchase_item + "\n"
-                    displayed_count += 1
                     
-                    if displayed_count % 5 == 0:
+                    if (i - 20) % 3 == 0:
                         bot.send_message(user_id, purchases_text, parse_mode="Markdown")
                         purchases_text = ""
-                        time.sleep(0.3)
+                        time.sleep(0.5)
                         
                 except Exception as e:
-                    logger.error(f"❌ خطأ في معالجة الشراء الإضافي: {e}")
                     continue
             
             if purchases_text.strip():
@@ -1604,7 +1537,6 @@ def callback_handler(call):
                 admins.remove(admin_to_remove)
                 save_json(ADMINS_FILE, admins)
                 bot.send_message(user_id, f"✅ تم إزالة المدير {admin_to_remove} بنجاح!")
-                logger.info(f"✅ تم إزالة المدير: {admin_to_remove}")
             else:
                 bot.send_message(user_id, "❌ هذا المدير غير موجود في القائمة.")
     
@@ -1622,49 +1554,19 @@ def callback_handler(call):
             
             markup = types.InlineKeyboardMarkup(row_width=1)
             for i, acc in enumerate(accounts):
-                try:
-                    email = acc['account'].split(':')[0]
-                    btn_text = f"📧 {email[:20]}... | 👥 {acc['remaining_users']}/{acc['max_users']}"
-                    markup.add(types.InlineKeyboardButton(btn_text, callback_data=f'delete_netflix_{i}'))
-                except:
-                    continue
+                email = acc['account'].split(':')[0]
+                btn_text = f"📧 {email[:20]}... | 👥 {acc['remaining_users']}/{acc['max_users']}"
+                markup.add(types.InlineKeyboardButton(btn_text, callback_data=f'delete_netflix_{i}'))
             
             bot.send_message(user_id, "📺 اختر حساب لحذفه:", reply_markup=markup)
     
     elif call.data.startswith('delete_netflix_'):
         if is_admin(user_id):
-            try:
-                index = int(call.data.replace('delete_netflix_', ''))
-                if delete_netflix_account(index):
-                    bot.send_message(user_id, "✅ تم حذف الحساب بنجاح!")
-                    # تحديث القائمة
-                    accounts = load_json(NETFLIX_FILE, [])
-                    if not accounts:
-                        bot.send_message(user_id, "ℹ️ لا توجد حسابات نتفلكس مضافة.")
-                        return
-                    
-                    markup = types.InlineKeyboardMarkup(row_width=1)
-                    for i, acc in enumerate(accounts):
-                        try:
-                            email = acc['account'].split(':')[0]
-                            btn_text = f"📧 {email[:20]}... | 👥 {acc['remaining_users']}/{acc['max_users']}"
-                            markup.add(types.InlineKeyboardButton(btn_text, callback_data=f'delete_netflix_{i}'))
-                        except:
-                            continue
-                    
-                    try:
-                        bot.edit_message_reply_markup(
-                            chat_id=call.message.chat.id,
-                            message_id=call.message.message_id,
-                            reply_markup=markup
-                        )
-                    except:
-                        bot.send_message(user_id, "📺 اختر حساب لحذفه:", reply_markup=markup)
-                else:
-                    bot.send_message(user_id, "❌ فشل في حذف الحساب.")
-            except Exception as e:
-                logger.error(f"❌ خطأ في حذف حساب نتفلكس: {e}")
-                bot.send_message(user_id, "❌ حدث خطأ أثناء حذف الحساب.")
+            index = int(call.data.replace('delete_netflix_', ''))
+            if delete_netflix_account(index):
+                bot.send_message(user_id, "✅ تم حذف الحساب بنجاح!")
+            else:
+                bot.send_message(user_id, "❌ فشل في حذف الحساب.")
     
     elif call.data == 'add_icloud':
         if is_admin(user_id):
@@ -1680,49 +1582,19 @@ def callback_handler(call):
             
             markup = types.InlineKeyboardMarkup(row_width=1)
             for i, acc in enumerate(accounts):
-                try:
-                    email = acc['account'].split(':')[0]
-                    btn_text = f"📧 {email[:20]}... | 👥 {acc['remaining_users']}/{acc['max_users']}"
-                    markup.add(types.InlineKeyboardButton(btn_text, callback_data=f'delete_icloud_{i}'))
-                except:
-                    continue
+                email = acc['account'].split(':')[0]
+                btn_text = f"📧 {email[:20]}... | 👥 {acc['remaining_users']}/{acc['max_users']}"
+                markup.add(types.InlineKeyboardButton(btn_text, callback_data=f'delete_icloud_{i}'))
             
             bot.send_message(user_id, "☁️ اختر حساب لحذفه:", reply_markup=markup)
     
-    elif call.data startswith('delete_icloud_'):
+    elif call.data.startswith('delete_icloud_'):
         if is_admin(user_id):
-            try:
-                index = int(call.data.replace('delete_icloud_', ''))
-                if delete_icloud_account(index):
-                    bot.send_message(user_id, "✅ تم حذف حساب iCloud بنجاح!")
-                    # تحديث القائمة
-                    accounts = load_json(ICLOUD_FILE, [])
-                    if not accounts:
-                        bot.send_message(user_id, "ℹ️ لا توجد حسابات iCloud مضافة.")
-                        return
-                    
-                    markup = types.InlineKeyboardMarkup(row_width=1)
-                    for i, acc in enumerate(accounts):
-                        try:
-                            email = acc['account'].split(':')[0]
-                            btn_text = f"📧 {email[:20]}... | 👥 {acc['remaining_users']}/{acc['max_users']}"
-                            markup.add(types.InlineKeyboardButton(btn_text, callback_data=f'delete_icloud_{i}'))
-                        except:
-                            continue
-                    
-                    try:
-                        bot.edit_message_reply_markup(
-                            chat_id=call.message.chat.id,
-                            message_id=call.message.message_id,
-                            reply_markup=markup
-                        )
-                    except:
-                        bot.send_message(user_id, "☁️ اختر حساب لحذفه:", reply_markup=markup)
-                else:
-                    bot.send_message(user_id, "❌ فشل في حذف الحساب.")
-            except Exception as e:
-                logger.error(f"❌ خطأ في حذف حساب iCloud: {e}")
-                bot.send_message(user_id, "❌ حدث خطأ أثناء حذف الحساب.")
+            index = int(call.data.replace('delete_icloud_', ''))
+            if delete_icloud_account(index):
+                bot.send_message(user_id, "✅ تم حذف حساب iCloud بنجاح!")
+            else:
+                bot.send_message(user_id, "❌ فشل في حذف الحساب.")
     
     elif call.data == 'manage_channels':
         if is_admin(user_id):
@@ -1806,11 +1678,8 @@ def process_transfer_amount(message, target_user):
     else:
         for user_id, user_data in data.items():
             try:
-                user_info = bot.get_chat(int(user_id))
+                user_info = bot.get_chat(user_id)
                 if user_info.username and f"@{user_info.username}" == target_user:
-                    user_found = user_id
-                    break
-                elif user_info.username and user_info.username == target_user.replace('@', ''):
                     user_found = user_id
                     break
             except:
@@ -1827,9 +1696,9 @@ def process_transfer_amount(message, target_user):
     save_json(DB_FILE, data)
     
     try:
-        bot.send_message(int(user_found), f"🎁 **مبروك! استلمت نقاط جديدة**\n━━━━━━━━━━━━━━\nتمت إضافة **{amount}** نقطة إلى حسابك من قبل الإدارة.\n🚀 يمكنك استخدامها الآن في المتجر.", parse_mode="Markdown")
-    except Exception as e:
-        logger.error(f"❌ خطأ في إرسال إشعار تحويل النقاط: {e}")
+        bot.send_message(user_found, f"🎁 **مبروك! استلمت نقاط جديدة**\n━━━━━━━━━━━━━━\nتمت إضافة **{amount}** نقطة إلى حسابك من قبل الإدارة.\n🚀 يمكنك استخدامها الآن في المتجر.", parse_mode="Markdown")
+    except:
+        pass
     
     bot.send_message(admin_id, f"✅ تم تحويل {amount} نقطة إلى المستخدم بنجاح!")
 
@@ -2012,13 +1881,6 @@ check_data_integrity()
 
 print("🛡️ Anti-spam protection activated")
 print("📊 Purchase history system activated")
-print("✅ All fixes applied:")
-print("   1. Fixed subscription verification system")
-print("   2. Fixed Netflix accounts display")
-print("   3. Fixed iCloud accounts display")
-print("   4. Fixed admin removal system")
-print("   5. Fixed referral system")
-print("   6. Fixed admin verification")
 
 if __name__ == "__main__":
     try:
